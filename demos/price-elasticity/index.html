@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pricing Demo: Linear Demand, Elasticity, Revenue-Max</title>
+
+  <!-- Plotly from CDN (internet required) -->
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: #fafafa; }
+    header { padding: 16px 20px; background: white; border-bottom: 1px solid #e6e6e6; }
+    header h1 { margin: 0; font-size: 18px; }
+
+    .wrap { display: grid; grid-template-columns: 360px 1fr; gap: 14px; padding: 14px; }
+    .card { background: white; border: 1px solid #e6e6e6; border-radius: 12px; padding: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+    .card h2 { margin: 0 0 6px; font-size: 14px; letter-spacing: 0.2px; }
+    label { display: block; font-size: 12px; color: #333; margin-top: 10px; }
+    select { width: 100%; padding: 8px 10px; border-radius: 10px; border: 1px solid #ddd; background: #fff; font-size: 14px; }
+    .small { font-size: 12px; color: #555; line-height: 1.35; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .stat { background: #fbfbfb; border: 1px solid #ededed; border-radius: 10px; padding: 10px; }
+    .stat .k { font-size: 11px; color: #666; margin-bottom: 4px; }
+    .stat .v { font-size: 14px; font-weight: 600; }
+    #plot { width: 100%; height: 560px; }
+
+    .equationBox {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid #ededed;
+      background: #fbfbfb;
+    }
+    .equationTitle { font-size: 12px; color: #444; font-weight: 700; margin-bottom: 6px; letter-spacing: 0.2px; }
+    .equationText { font-size: 16px; font-weight: 700; }
+    .equationSub { margin-top: 6px; font-size: 12px; color: #666; }
+
+    .interpLine {
+      margin: 0 0 10px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: #fbfbfb;
+      border: 1px solid #ededed;
+      font-size: 12px;
+      color: #444;
+      line-height: 1.35;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Linear Demand Curve • Elasticity on Hover • Revenue-Max at ε = −1</h1>
+  </header>
+
+  <div class="wrap">
+    <div class="card">
+      <h2>Controls</h2>
+      <div class="interpLine" id="interpLine">
+        Interpretation of b (slope): for each $1 increase in Price, Quantity sold decreases by 4
+      </div>
+
+      <label for="bSelect">Slope (b &gt; 0)</label>
+      <select id="bSelect">
+        <option value="1.5">1.5</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4" selected>4</option>
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+      </select>
+
+      <div class="equationBox">
+        <div class="equationTitle">Demand Equation</div>
+        <div class="equationText mono" id="demandEq">Q(P) = 120 − 4·P</div>
+      </div>
+
+      <div class="grid2" style="margin-top:12px;">
+        <div class="stat">
+          <div class="k">Revenue-max price P*</div>
+          <div class="v mono" id="pStar"></div>
+        </div>
+        <div class="stat">
+          <div class="k">Revenue-max quantity Q*</div>
+          <div class="v mono" id="qStar"></div>
+        </div>
+        <div class="stat">
+          <div class="k">Max revenue R*</div>
+          <div class="v mono" id="rStar"></div>
+        </div>
+        <div class="stat">
+          <div class="k">Slope (b)</div>
+          <div class="v mono" id="bStat"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px;">
+        <h2>Hover readout (snaps to integer P)</h2>
+        <div class="small">Move your mouse over the curve (the hovered point is marked on the chart):</div>
+        <div class="grid2">
+          <div class="stat"><div class="k">P</div><div class="v mono" id="hoverP">—</div></div>
+          <div class="stat"><div class="k">Q</div><div class="v mono" id="hoverQ">—</div></div>
+          <div class="stat"><div class="k">ε</div><div class="v mono" id="hoverEps">—</div></div>
+          <div class="stat"><div class="k">Revenue (P·Q)</div><div class="v mono" id="hoverR">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Demand curve (hover for elasticity)</h2>
+      <div id="plot"></div>
+    </div>
+  </div>
+
+<script>
+  // -----------------------------
+  // Fixed plot window + fixed a
+  // -----------------------------
+  const A_FIXED = 120;     // fixed intercept a
+  const X_MAX   = 80;      // fixed x-axis max (Price)
+  const Y_MAX   = 140;     // fixed y-axis max (Quantity)
+
+  // Label offset: move region labels above the curve by this many units of Q
+  const REGION_LABEL_Y_OFFSET = 18;
+
+  const els = {
+    bSelect: document.getElementById('bSelect'),
+    demandEq: document.getElementById('demandEq'),
+    interpLine: document.getElementById('interpLine'),
+
+    pStar: document.getElementById('pStar'),
+    qStar: document.getElementById('qStar'),
+    rStar: document.getElementById('rStar'),
+    bStat: document.getElementById('bStat'),
+
+    hoverP: document.getElementById('hoverP'),
+    hoverQ: document.getElementById('hoverQ'),
+    hoverEps: document.getElementById('hoverEps'),
+    hoverR: document.getElementById('hoverR'),
+
+    plot: document.getElementById('plot'),
+  };
+
+  function fmt(x, d=2) {
+    if (x === null || x === undefined || Number.isNaN(x)) return "—";
+    return Number(x).toFixed(d);
+  }
+  function money(x, d=2) {
+    if (x === null || x === undefined || Number.isNaN(x)) return "—";
+    return "$" + Number(x).toFixed(d);
+  }
+
+  function getB() {
+    return Number(els.bSelect.value);
+  }
+
+  // Demand math: Q = a - bP; epsilon = (-b) * P / Q
+  function qAtP(a, b, p) { return a - b * p; }
+  function epsAtP(a, b, p) {
+    const q = qAtP(a, b, p);
+    return (q > 0) ? (-b) * p / q : NaN;
+  }
+  function revAtP(a, b, p) {
+    const q = qAtP(a, b, p);
+    return p * q;
+  }
+
+  function buildData(a, b) {
+    const n = 801;
+    const P = [], Q = [], eps = [], R = [];
+    for (let i = 0; i < n; i++) {
+      const p = (X_MAX * i) / (n - 1);
+      const q = a - b * p;
+      const e = (q > 0) ? (-b) * p / q : NaN;
+      P.push(p);
+      Q.push(q);
+      eps.push(e);
+      R.push(p * q);
+    }
+    return { P, Q, eps, R };
+  }
+
+  function updateStats(a, b) {
+    const pStar = a / (2 * b);
+    const qStar = a / 2;
+    const rStar = (a * a) / (4 * b);
+
+    els.bStat.textContent = b.toFixed(2);
+    els.pStar.textContent = money(pStar, 2);
+    els.qStar.textContent = fmt(qStar, 2);
+    els.rStar.textContent = money(rStar, 2);
+
+    return { pStar, qStar, rStar };
+  }
+
+  function updateEquationDisplay(b) {
+    const bText = (Number.isInteger(b) ? b.toFixed(0) : b.toFixed(1));
+    els.demandEq.textContent = `Q(P) = 120 − ${bText}·P`;
+  }
+
+  function updateInterpretationLine(b) {
+    const bText = (Number.isInteger(b) ? b.toFixed(0) : b.toFixed(1));
+    els.interpLine.textContent =
+      `Interpretation of b (slope): for each $1 increase in Price, Quantity sold decreases by ${bText}`;
+  }
+
+  let hoverHandlersAttached = false;
+
+  function setHoverMarker(p, q) {
+    // Trace index 3 is the hover marker trace (see draw())
+    Plotly.restyle(els.plot, { x: [[p]], y: [[q]] }, [3]);
+  }
+
+  function setHoverReadout(a, b, pInt) {
+    const p = Math.max(0, Math.min(X_MAX, pInt));
+    const q = qAtP(a, b, p);
+    const e = epsAtP(a, b, p);
+    const r = revAtP(a, b, p);
+
+    els.hoverP.textContent = "$" + fmt(p, 0);
+    els.hoverQ.textContent = fmt(q, 2);
+    els.hoverEps.textContent = fmt(e, 3);
+    els.hoverR.textContent = money(r, 2);
+
+    setHoverMarker(p, q);
+  }
+
+  function attachHoverHandlersOnce() {
+    if (hoverHandlersAttached) return;
+    if (typeof els.plot.on !== "function") return;
+
+    els.plot.on('plotly_hover', (ev) => {
+      const pt = ev.points?.[0];
+      if (!pt) return;
+
+      // Snap to nearest integer P (price)
+      const snappedP = Math.round(pt.x);
+      const b = getB();
+      setHoverReadout(A_FIXED, b, snappedP);
+    });
+
+    hoverHandlersAttached = true;
+  }
+
+  function draw() {
+    if (typeof Plotly === "undefined") return;
+
+    const a = A_FIXED;
+    const b = getB();
+
+    updateInterpretationLine(b);
+    updateEquationDisplay(b);
+    const { pStar, qStar, rStar } = updateStats(a, b);
+
+    const { P, Q, eps, R } = buildData(a, b);
+    const pChoke = a / b;
+
+    // Split demand curve into inelastic (P < P*) and elastic (P > P*)
+    const P_inel = [], Q_inel = [];
+    const P_el   = [], Q_el   = [];
+
+    for (let i = 0; i < P.length; i++) {
+      const p = P[i], q = Q[i];
+      if (q > 0 && p <= pStar) {
+        P_inel.push(p); Q_inel.push(q);
+      } else {
+        P_inel.push(p); Q_inel.push(null);
+      }
+      if (q > 0 && p >= pStar) {
+        P_el.push(p); Q_el.push(q);
+      } else {
+        P_el.push(p); Q_el.push(null);
+      }
+    }
+
+    // customdata for hover: [epsilon, revenue]
+    const customdataAll = P.map((_, i) => [eps[i], R[i]]);
+
+    const inelasticTrace = {
+      x: P_inel,
+      y: Q_inel,
+      mode: 'lines',
+      name: 'Inelastic (|ε|<1)',
+      line: { width: 3, color: '#1f77b4' },
+      customdata: customdataAll,
+      hovertemplate:
+        '<span style="font-size:16px">' +
+          '<b>ε:</b> %{customdata[0]:.3f}<br>' +
+          'P: $%{x:.2f}<br>' +
+          'Q: %{y:.2f}<br>' +
+          'Revenue (P·Q): $%{customdata[1]:.2f}' +
+        '</span>' +
+        '<extra></extra>'
+    };
+
+    const elasticTrace = {
+      x: P_el,
+      y: Q_el,
+      mode: 'lines',
+      name: 'Elastic (|ε|>1)',
+      line: { width: 3, color: '#d62728' },
+      customdata: customdataAll,
+      hovertemplate:
+        '<span style="font-size:16px">' +
+          '<b>ε:</b> %{customdata[0]:.3f}<br>' +
+          'P: $%{x:.2f}<br>' +
+          'Q: %{y:.2f}<br>' +
+          'Revenue (P·Q): $%{customdata[1]:.2f}' +
+        '</span>' +
+        '<extra></extra>'
+    };
+
+    // Revenue rectangle at optimum (always on) + include R* in annotation
+    const shapes = [{
+      type: 'rect',
+      x0: 0, y0: 0,
+      x1: pStar, y1: qStar,
+      line: { width: 1 },
+      fillcolor: 'rgba(0,0,0,0.05)',
+      layer: 'below'
+    }];
+
+    const annotations = [{
+      x: pStar * 0.55,
+      y: qStar * 0.55,
+      text: `Revenue at optimum (P*×Q*)<br>R* = ${money(rStar, 2)}`,
+      showarrow: false,
+      font: { size: 12 }
+    }];
+
+    // Region labels: place them above the curve by REGION_LABEL_Y_OFFSET
+    const pInelLabel = Math.max(2, Math.min(pStar * 0.5, X_MAX - 2));
+    const qInelOnCurve = qAtP(a, b, pInelLabel);
+    const qInelLabel = Math.min(Y_MAX - 8, qInelOnCurve + REGION_LABEL_Y_OFFSET);
+
+    const pElMidRaw = (pStar + pChoke) / 2;
+    const pElLabel = Math.max(2, Math.min(pElMidRaw, X_MAX - 2));
+    const qElOnCurve = qAtP(a, b, pElLabel);
+    const qElLabel = Math.min(Y_MAX - 8, qElOnCurve + REGION_LABEL_Y_OFFSET);
+
+    if (qInelOnCurve > 0 && pInelLabel <= X_MAX) {
+      annotations.push({
+        x: pInelLabel,
+        y: qInelLabel,
+        text: 'Inelastic<br>(|ε| &lt; 1)',
+        showarrow: false,
+        font: { size: 13, color: '#1f77b4' },
+        bgcolor: 'rgba(255,255,255,0.7)',
+        bordercolor: 'rgba(31,119,180,0.35)',
+        borderwidth: 1,
+        borderpad: 4
+      });
+    }
+
+    if (qElOnCurve > 0 && pElLabel <= X_MAX) {
+      annotations.push({
+        x: pElLabel,
+        y: qElLabel,
+        text: 'Elastic<br>(|ε| &gt; 1)',
+        showarrow: false,
+        font: { size: 13, color: '#d62728' },
+        bgcolor: 'rgba(255,255,255,0.7)',
+        bordercolor: 'rgba(214,39,40,0.35)',
+        borderwidth: 1,
+        borderpad: 4
+      });
+    }
+
+    // Choke price guide line (only if visible within plot window)
+    if (pChoke <= X_MAX) {
+      shapes.push({
+        type: 'line',
+        x0: pChoke, y0: 0,
+        x1: pChoke, y1: Y_MAX,
+        line: { dash: 'dot', width: 1, color: 'rgba(0,0,0,0.25)' }
+      });
+      annotations.push({
+        x: pChoke,
+        y: 6,
+        text: 'Choke price (Q=0)',
+        showarrow: false,
+        xanchor: 'left',
+        font: { size: 12, color: 'rgba(0,0,0,0.6)' }
+      });
+    }
+
+    const optTrace = {
+      x: [pStar],
+      y: [qStar],
+      mode: 'markers+text',
+      name: 'Revenue-max (ε = −1)',
+      text: ['Revenue-max<br>(ε = −1)'],
+      textposition: 'top center',
+      marker: { size: 10, color: 'black' },
+      hovertemplate:
+        '<span style="font-size:16px">' +
+        '<b>Revenue-max point</b><br>' +
+        `P*: ${money(pStar, 2)}<br>` +
+        `Q*: ${fmt(qStar, 2)}<br>` +
+        `R*: ${money(rStar, 2)}` +
+        '</span>' +
+        '<extra></extra>'
+    };
+
+    // Hover marker trace (updated live on hover)
+    const hoverMarkerTrace = {
+      x: [null],
+      y: [null],
+      mode: 'markers',
+      name: 'Hover point',
+      marker: { size: 11, symbol: 'circle-open', line: { width: 3, color: 'black' } },
+      hoverinfo: 'skip',
+      showlegend: false
+    };
+
+    const layout = {
+      margin: { l: 55, r: 20, t: 10, b: 55 },
+      xaxis: { title: 'Price (P)', range: [0, X_MAX], fixedrange: true },
+      yaxis: { title: 'Quantity (Q)', range: [0, Y_MAX], fixedrange: true },
+      hovermode: 'closest',
+      shapes,
+      annotations,
+      legend: { orientation: 'h', x: 0, y: 1.08 }
+    };
+
+    Plotly.react(els.plot, [inelasticTrace, elasticTrace, optTrace, hoverMarkerTrace], layout, { responsive: true })
+      .then(() => {
+        attachHoverHandlersOnce();
+        const defaultP = Math.round(pStar);
+        setHoverReadout(a, b, defaultP);
+      });
+  }
+
+  // Wire up control
+  els.bSelect.addEventListener('change', draw);
+
+  // Initial render
+  draw();
+</script>
+
+</body>
+</html>

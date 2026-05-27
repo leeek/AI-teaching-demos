@@ -1,0 +1,21 @@
+# [Demo Name]
+
+## What it teaches
+
+[Brief description of the concept this demo illustrates]
+
+## Course context
+
+[Which course(s) this was built for and where it fits in the curriculum]
+
+## How it was made
+
+[The prompt used, or a summary. Note any AI tool used.]
+
+## Post-generation changes
+
+[Any manual edits or tweaks made after the AI generated the initial version. Write "None" if used as-is.]
+
+## Known issues
+
+[Any quirks, browser compatibility notes, or limitations. Write "None" if it works cleanly.]

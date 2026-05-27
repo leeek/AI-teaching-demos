@@ -1,0 +1,18 @@
+I am a business school professor preparing a teaching demonstration. I want to build a small interactive tool that I can use in class to illustrate a concept.
+
+The concept I want to demonstrate is: [[Concept information here]]
+
+What I want the student to be able to do is: [[Functional information here]]
+
+The course context is: [[Course context here]]
+
+Please build this as a single self-contained HTML file with all CSS and JavaScript inline. No external libraries, no CDN imports, no external files of any kind. Everything must work when I save the code as a .html file and open it directly in a browser by double-clicking. Use only vanilla HTML, CSS, and JavaScript that runs natively in any modern browser.
+
+Design requirements:
+
+1. Clean, professional appearance suitable for projecting to a classroom
+2. Large enough text and controls to be readable from the back of a lecture hall
+3. The interactive element (slider, toggle, input) should be obvious and easy to manipulate
+4. Any chart or visualization should be drawn with HTML5 Canvas or SVG, not an external charting library
+
+Please give me the complete HTML file in a single code block I can copy.
