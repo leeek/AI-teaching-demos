@@ -17,7 +17,7 @@ If you are not comfortable with git, you can also send the completed demo folder
 
 - Use relative paths for all file references, such as `./images/thing.png`, not absolute paths from your own computer.
 - Prefer a single self-contained HTML file where possible.
-- Name the main demo file `index.html` so it works cleanly on GitHub Pages.
+- Use a descriptive kebab-case filename for the demo HTML file, such as `price-elasticity-demo.html`, so it is easy to identify when downloaded or uploaded to Canvas.
 - Each demo folder must include a `README.md`.
 
 ## README Fields

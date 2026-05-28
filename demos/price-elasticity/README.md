@@ -1,6 +1,6 @@
 # Price Elasticity Demo
 
-[Open the demo](./)
+[Open the demo](./price-elasticity-demo.html)
 
 ## What it teaches
 

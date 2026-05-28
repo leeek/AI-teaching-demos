@@ -4,7 +4,7 @@ This repository is a shared collection of interactive teaching demos built with 
 
 ## Demo Library
 
-- [Price Elasticity Demo](./demos/price-elasticity/) - linear demand, price elasticity, and the revenue-maximizing price.
+- [Price Elasticity Demo](./demos/price-elasticity/price-elasticity-demo.html) - linear demand, price elasticity, and the revenue-maximizing price.
 
 ## Getting Started
 
