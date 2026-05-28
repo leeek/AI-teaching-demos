@@ -27,5 +27,4 @@ Each demo README should include:
 - Concept taught
 - Course where it is used
 - Prompt used to generate it, or a short summary of the prompt
-- Any manual tweaks made after generation
 - Known limitations or quirks
