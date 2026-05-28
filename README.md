@@ -1,6 +1,6 @@
 # AI Teaching Demos for Marketing Courses
 
-This repository is a shared collection of interactive teaching demos built with AI for use in marketing courses. Faculty can browse existing demos, create new ones using the starter prompt, and contribute their own examples back so colleagues can adapt, learn from, and reuse them.
+This repository is a shared collection of interactive teaching demos built with AI for use in marketing courses. Instructors can browse existing demos, create new ones using the starter prompt, and contribute their own examples back so colleagues can adapt, learn from, and reuse them.
 
 ## Links
 
