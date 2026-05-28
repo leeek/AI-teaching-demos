@@ -12,9 +12,6 @@
 
 [The prompt used, or a summary. Note any AI tool used.]
 
-## Post-generation changes
-
-[Any manual edits or tweaks made after the AI generated the initial version. Write "None" if used as-is.]
 
 ## Known issues
 

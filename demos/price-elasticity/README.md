@@ -14,9 +14,6 @@ This was built for marketing courses that cover pricing, demand, price sensitivi
 
 Generated with AI as an interactive classroom demo for a business school marketing course. The likely prompt asked for a single-page app demonstrating linear demand, elasticity on hover, and the revenue-maximizing point where elasticity equals -1.
 
-## Post-generation changes
-
-First-pass repository organization only: the existing HTML file was moved into this demo folder and this README was added.
 
 ## Known issues
 
