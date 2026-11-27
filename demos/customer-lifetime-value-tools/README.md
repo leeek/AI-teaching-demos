@@ -13,22 +13,21 @@ Each tool is a single HTML file. Download it and open it in any browser. No netw
 | [`bg-parameter-plane.html`](./bg-parameter-plane.html) | **What do gamma and delta actually do?** A clickable parameter plane for the beta-geometric model. Students see how the mix of loyal and churn-prone customers drives survival and retention, then try to fit the Blue Apron data by hand before revealing the Solver answer. |
 | [`coin-shakeout.html`](./coin-shakeout.html) | **Coin shake-out.** Prof. Schwartz's demo of how heterogeneity makes cohort retention rise over time, extended to plot the beta-geometric and retention curves, with a Blue Apron preset and a retention-rate view. |
 
-## Concept taught
+## What it teaches
 
 Customer heterogeneity, cohort survival and retention, discounting, CAC and payback, and the distribution of CLV across customers.
 
-## Course
+## Course context
 
 MKT 626, Customer Analytics: Measuring and Managing Customer Value (Prof. Eric Schwartz). Developed August 2026.
 
-## How it was built
+## How it was made
 
 Built with an AI coding assistant from the course slides and workbooks. The math core of each tool was recomputed against `Class 7 - BG and CLV.xlsx` and checked with regression tests. Prompt summary: focused, progressive teaching tools in Michigan maize and blue, with a prediction question before each reveal and every chart traceable to a table row or formula. The coin shake-out starts from Prof. Schwartz's own prototype.
 
-## Known limitations
+## Known issues
 
 - Monthly periods and annuity-due subscription timing are used throughout.
 - The transactional customer's purchases follow Poisson arrivals, stated as a teaching assumption.
-- Open decisions for Prof. Schwartz: Canvas versus GitHub Pages for distribution, and whether to mark the two-segment fit from the Class 7 slides on the parameter plane.
 
 ![BG parameter plane](./screenshots/bg-parameter-plane.jpg)
