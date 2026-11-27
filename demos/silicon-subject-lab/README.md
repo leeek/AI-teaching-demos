@@ -6,7 +6,7 @@ Guides students to build and interview synthetic consumer participants ("silicon
 
 **Open:** [`silicon-subject-lab.html`](./silicon-subject-lab.html). Download it and open it in any browser. It costs nothing to use: the tool writes the prompts, and students paste them into their own ChatGPT. No API key is needed.
 
-## Concept taught
+## What it teaches
 
 Synthetic sampling for consumer research, and its main failure mode: AI-generated respondents that all answer like the average consumer (mean regression).
 
@@ -18,15 +18,15 @@ The tool has five steps:
 4. **Build the sample.** A variance monitor flags when answers start collapsing toward the average.
 5. **Export.** Findings for the report body, plus instruments and method for the appendix.
 
-## Course
+## Course context
 
 Strategic Brand Management (Prof. Katherine Burson), for the brand audit final project. Developed summer 2026.
 
-## How it was built
+## How it was made
 
 Built with an AI coding assistant from Prof. Burson's Brand Image lecture (the four-step silicon sampling workflow), the Becker/Maastricht respondent generator she used as a reference, and her brand audit assignment. Prompt summary: a one-person-at-a-time synthetic participant builder that requires segmentation before generation, samples subjects locally from student-specified distributions, composes prompts for the student's own ChatGPT, and exports audit-ready findings.
 
-## Known limitations
+## Known issues
 
 - Step 1 asks students to specify distributions, including standard deviations for attitudes. Students without a statistics background may need a short explanation, or can anchor these to their own data collection.
 - Laddered higher-order needs use the `→` symbol between levels (for example, `expert care → certainty → feeling in control`).
