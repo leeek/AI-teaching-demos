@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conjoint Design | Michigan Ross</title>
+  <meta name="description" content="Create and check product profiles for a classroom conjoint study. Enter attributes, review design diagnostics, and export a table of profiles.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%2300274C'/%3E%3Cpath d='M7 7h7v7H7zm11 0h7v7h-7zM7 18h7v7H7z' fill='%23fff'/%3E%3Cpath d='M18 18h7v7h-7z' fill='%23FFCB05'/%3E%3C/svg%3E">
+  <style>
+:root{font-family:'Open Sans',Arial,Helvetica,sans-serif;color:#00274c;background:#f7f8fa;font-size:16px;font-synthesis:none;--navy:#00274c;--blue:#00274c;--muted:#4c5968;--line:#d6dce3;--yellow:#ffcb05;--white:#fff}
+*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}button,a,input,textarea,select,summary{-webkit-tap-highlight-color:transparent}button{cursor:pointer}button:disabled{opacity:.48;cursor:not-allowed}a{color:var(--blue);text-underline-offset:3px}button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:3px solid #3b73c4;outline-offset:3px}input:focus,select:focus,textarea:focus{outline:2px solid #4478bd;outline-offset:1px}input,select,textarea{width:100%;border:1px solid #cbd3df;border-radius:6px;background:#fff;color:var(--navy);padding:10px 11px;font-size:.9375rem;line-height:1.4}input[type=checkbox]{width:18px;height:18px;accent-color:var(--blue);flex-shrink:0}select{padding-right:28px}h1,h2,h3,p{margin-top:0}h1,h2,h3,.brand{font-family:'Open Sans',Arial,Helvetica,sans-serif}h1{font-weight:750;font-size:2.25rem;letter-spacing:-1.3px;line-height:1.2;margin-bottom:12px}h2{font-size:1.125rem;letter-spacing:-.4px;margin:0}h3{font-size:1.2rem;letter-spacing:-.4px}p{line-height:1.55}small,.small{font-size:.8125rem;line-height:1.5}.muted{color:var(--muted)}[hidden]{display:none!important}.topbar{height:82px;background:white;border-bottom:1px solid var(--line);padding:0 max(30px,calc((100vw - 1440px)/2));display:flex;align-items:center;justify-content:space-between;gap:20px}.brand{font-size:1.25rem;font-weight:800;text-decoration:none;display:flex;align-items:center;color:var(--navy);letter-spacing:-.6px;gap:5px}.brand>span:last-child{font-weight:500}.topbar-end{display:flex;gap:25px;align-items:center;font-size:.875rem}.topbar-end a{color:var(--muted);text-decoration:none}main{max-width:1440px;margin:auto;padding:38px 30px 0}.page-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:30px}.eyebrow{color:#496582;font-size:.75rem;font-weight:700;letter-spacing:1.6px;margin-bottom:12px}.page-heading p:last-child{color:var(--muted);margin-bottom:0;max-width:700px;font-size:.9375rem}.model-note{font-size:.8125rem;color:var(--muted);border-left:2px solid var(--yellow);padding-left:12px;white-space:nowrap}.workspace{display:grid;grid-template-columns:390px minmax(0,1fr);align-items:start;gap:28px}.panel{background:white;border:1px solid var(--line);border-radius:10px;box-shadow:0 2px 3px #192b4903}.editor{padding:25px 23px}.section-heading{display:flex;gap:12px;align-items:center;margin-bottom:23px}.step{font-size:.75rem;font-weight:700;color:#66758a;letter-spacing:.5px;border:1px solid #d9e0ea;border-radius:50%;height:29px;width:29px;display:grid;place-items:center;flex-shrink:0}.field-label,label{display:block;font-size:.875rem;font-weight:500;margin-bottom:7px}.editor #example-note{margin:8px 0 24px}.editor-labels{display:grid;grid-template-columns:1fr 1.18fr;gap:10px;padding-right:25px;color:var(--muted);font-size:.8125rem;margin-bottom:9px}.attribute-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.18fr) 18px;gap:8px;margin-bottom:13px;align-items:start}.attribute-row textarea{resize:vertical;min-height:76px;font-size:.875rem}.attribute-row input{font-size:.875rem}.remove{padding:7px 0;background:transparent;border:none;color:#66758a;font-size:1.3rem;line-height:1.2}.remove:hover{color:#9f3333}.button{border:1px solid transparent;border-radius:6px;padding:11px 15px;font-size:.875rem;font-weight:600;display:inline-flex;justify-content:center;align-items:center;gap:12px;min-height:42px}.primary{color:white;background:var(--navy)}.primary:hover{background:#29466f}.secondary{border-color:#cbd3df;color:var(--navy);background:white}.secondary:hover,.subtle:hover{background:#edf2f9}.subtle{color:var(--blue);background:#f2f5fa}.add-attribute{width:100%;margin:1px 0 22px}.study-totals{display:grid;grid-template-columns:1fr 1fr;background:#f5f7fb;border-radius:7px;padding:16px;margin-bottom:27px;gap:10px}.study-totals>div{display:flex;flex-direction:column;gap:3px}.study-totals>div+div{border-left:1px solid var(--line);padding-left:15px}.study-totals strong{font-size:1.5rem;font-family:'Open Sans',Arial,Helvetica,sans-serif;letter-spacing:-.5px}.study-totals span{font-size:.75rem;color:var(--muted)}.settings-heading{border-top:1px solid var(--line);padding-top:24px}.input-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.suggestion{font-size:.8125rem;margin:12px 0 18px;color:var(--muted)}.suggestion p{margin-bottom:5px}.text-button{border:0;background:transparent;color:var(--blue);font-size:.8125rem;font-weight:600;padding:5px 0;text-decoration:underline;text-underline-offset:3px}.advanced{border-top:1px solid var(--line);padding:15px 0;margin-top:8px}.advanced summary{font-size:.875rem;cursor:pointer}.advanced[open] summary{margin-bottom:16px}.checkbox-label{display:flex;align-items:center;gap:8px;line-height:1.4}.advanced p{margin:7px 0 15px}.generate{width:100%;justify-content:space-between;margin-top:9px;min-height:48px}.generate span{font-size:1.25rem}.privacy-note{margin:10px 0 0;text-align:center;font-size:.75rem}.result-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:5px 0 21px}.result-heading .section-heading{margin:0}.badge{color:#426254;border:1px solid #bfcfc7;background:#f1f7f3;border-radius:4px;padding:5px 8px;font-size:.75rem;white-space:nowrap}.badge.warning{color:#805600;background:#fff7dc;border-color:#e9cd88}.badge.invalid{color:#9f3333;background:#fff0f0;border-color:#e8bcbc}.empty-state{min-height:490px;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:50px;text-align:center}.empty-state p{max-width:380px;color:var(--muted);font-size:.9375rem}.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}.metric{background:#fff;border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;padding:17px;min-height:144px}.metric>span{font-size:.8125rem;color:var(--muted);min-height:36px;line-height:1.4}.metric strong{font-family:'Open Sans',Arial,Helvetica,sans-serif;font-weight:650;font-size:2.1rem;letter-spacing:-1px;line-height:1.35}.metric small{font-size:.75rem;color:var(--muted);margin-top:6px}.metric:first-child{background:var(--navy);color:white;border-color:var(--navy)}.metric:first-child span,.metric:first-child small{color:#c6d2e6}.design-message{font-size:.875rem;line-height:1.55;margin:0 0 20px;padding:13px 15px;border-left:3px solid #64846e;background:#edf3ef;color:#344f3d}.design-message.warning,.notice,.inline-warning{background:#fff7df;color:#775412;border-left:3px solid #d6a531}.design-message p{margin:0}.design-message p+p{margin-top:6px}.notice{font-size:.875rem;padding:12px 15px;margin-bottom:18px}.inline-warning{padding:10px 12px;font-size:.8125rem}.error-box{color:#8f2626;background:#fff0f0;border:1px solid #e7bcbc;border-radius:5px;padding:12px;font-size:.875rem;line-height:1.5;margin:10px 0}.profile-toolbar{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--line);gap:12px}.view-tabs{display:flex;gap:5px;background:#eff2f7;padding:3px;border-radius:6px}.view-tabs button{background:transparent;border:0;border-radius:4px;padding:7px 12px;color:var(--muted);font-size:.8125rem}.view-tabs button[aria-selected=true]{background:white;color:var(--navy);box-shadow:0 1px 3px #20304b20;font-weight:600}.table-scroll{overflow:auto;max-height:480px}table{width:100%;border-collapse:collapse;text-align:left;font-size:.8125rem}th{font-weight:600;color:var(--muted);background:#f8f9fc;position:sticky;top:0;z-index:1;font-size:.75rem}td,th{padding:12px 13px;border-bottom:1px solid #e8ecf2;vertical-align:middle;min-width:92px;max-width:180px;overflow-wrap:anywhere;line-height:1.4}td:first-child,th:first-child{min-width:45px;width:45px;padding-right:0}td:nth-child(2),th:nth-child(2){min-width:64px}.row-card{font-variant-numeric:tabular-nums;color:var(--muted)}.role-tag{font-size:.6875rem;color:#896622;background:#fff5d8;padding:3px 5px;border-radius:3px;display:block;margin-top:4px;white-space:nowrap}.excluded td{background:#f6f6f7;color:#959ca8}.excluded td:not(:first-child){text-decoration:line-through}.table-footnote{font-size:.75rem;color:var(--muted);padding:10px 18px;margin:0}.exports{display:flex;gap:10px;flex-wrap:wrap;padding:18px 18px 8px;border-top:1px solid var(--line);align-items:center}.export-note{padding:0 18px 15px;margin:0}.diagnostics{margin-top:20px;padding:19px 20px}.diagnostics summary{cursor:pointer;font-size:.9375rem;font-weight:600}.checks{display:flex;flex-wrap:wrap;gap:10px 20px;margin:18px 0;font-size:.8125rem}.check{display:flex;gap:6px;align-items:center}.check b{color:#427250;font-weight:500}.check.fail b{color:#a96612}.frequency-row{display:grid;grid-template-columns:150px minmax(0,1fr);gap:14px;margin:15px 0;align-items:start;font-size:.8125rem}.frequency-row>span{font-weight:500;padding-top:3px;overflow-wrap:anywhere}.frequency-levels{display:flex;gap:6px;flex-wrap:wrap}.frequency-level{background:#f0f3f8;border:1px solid #e1e6ef;border-radius:4px;padding:4px 7px;overflow-wrap:anywhere}.frequency-level strong{font-weight:600;margin-left:7px;color:var(--blue)}#construction{padding-top:12px;border-top:1px solid var(--line);margin:18px 0 0}.cards-grid{padding:0 18px 18px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;max-height:530px;overflow:auto}.survey-card{border:1px solid var(--line);border-top:3px solid var(--blue);padding:16px;border-radius:5px;background:white}.survey-card h3{font-size:.9375rem;margin:0 0 15px}.survey-card dl{margin:0}.survey-card dl div{display:flex;justify-content:space-between;gap:12px;border-top:1px solid #edf0f5;padding:8px 0;font-size:.8125rem}.survey-card dt{color:var(--muted)}.survey-card dd{text-align:right;margin:0;font-weight:500;overflow-wrap:anywhere}.card-view-note{padding:14px 18px;color:var(--muted);font-size:.8125rem;margin:0}.method{margin:48px 0 0;padding:35px 0 45px;border-top:1px solid var(--line);display:grid;grid-template-columns:390px minmax(0,1fr);gap:28px}.method h2{font-size:1.65rem;line-height:1.4;font-weight:650;margin-bottom:16px}.method>div>p:last-child{color:var(--muted);font-size:.875rem;max-width:320px}.method-content details{border-bottom:1px solid var(--line);padding:14px 0}.method-content details:first-child{padding-top:0}.method-content summary{font-size:.9375rem;font-weight:500;cursor:pointer}.method-content p{font-size:.875rem;color:var(--muted);margin:13px 0 0}footer{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding:24px max(30px,calc((100vw - 1380px)/2));gap:16px;color:var(--muted);font-size:.75rem}footer span:first-child{font-weight:700;color:var(--navy)}.mobile-only{display:none}.sr-only{position:absolute!important;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.skip-link{position:fixed;left:10px;top:-100px;z-index:20;padding:10px;background:white}.skip-link:focus{top:10px}#print-root{display:none}
+@media(min-width:1500px){.workspace,.method{grid-template-columns:410px minmax(0,1fr)}}
+@media(max-width:1100px){.workspace,.method{grid-template-columns:345px minmax(0,1fr);gap:20px}.editor{padding:22px 17px}.metric-grid{gap:8px}.metric{padding:13px}.model-note{display:none}.metric strong{font-size:1.8rem}.frequency-row{grid-template-columns:120px 1fr}.cards-grid{grid-template-columns:1fr}.badge{white-space:normal}}
+@media(max-width:850px){main{padding:28px 20px 0}.workspace,.method{grid-template-columns:1fr}.editor{padding:23px}.results{min-width:0;margin-top:10px}.page-heading{margin-bottom:25px}.page-heading h1{font-size:2rem}.editor-labels{grid-template-columns:1fr 1.5fr}.attribute-row{grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) 18px}.attribute-row textarea{min-height:72px}.method{margin-top:34px;gap:18px}.method h2 br{display:none}.method>div>p:last-child{max-width:100%}.topbar{height:70px;padding:0 20px}.topbar-end{gap:12px}.topbar-end>a{display:none}.cards-grid{grid-template-columns:repeat(2,minmax(0,1fr))}footer{padding:20px}}
+@media(max-width:480px){main{padding:23px 14px 0}.brand{font-size:1.1rem}.topbar{padding:0 14px}.page-heading h1{font-size:1.85rem}.page-heading p:last-child{font-size:.875rem}.editor{padding:20px 15px}.metric-grid{gap:7px}.metric{padding:12px 9px}.metric>span{font-size:.75rem;min-height:50px}.metric strong{font-size:1.8rem}.metric small{font-size:.75rem}.result-heading h2{font-size:1rem}.badge{max-width:125px;font-size:.6875rem}.cards-grid{grid-template-columns:1fr}.frequency-row{grid-template-columns:1fr;gap:6px}.exports>.button{flex:1}.exports .text-button{padding:9px 0}.diagnostics{padding:18px 15px}.mobile-only{display:block}footer{align-items:start}footer span:last-child{max-width:190px;text-align:right}.empty-state{padding:35px 20px}}
+@media print{body{background:white;color:#000;font-family:Arial,sans-serif}.topbar,main,footer,.skip-link{display:none!important}#print-root{display:block}.print-heading{font-size:18px;margin-bottom:20px}.print-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.survey-card{break-inside:avoid;border:1px solid #777;box-shadow:none}.survey-card dt{color:#333}.survey-card h3{font-family:Arial,sans-serif}.survey-card dl div{font-size:12px}a{color:inherit}}
+
+</style>
+  <style>
+/* Michigan Ross classroom presentation. */
+fieldset{border:0;min-width:0;padding:0;margin:0}
+.study-title{margin:0 0 16px;font-size:1.15rem;overflow-wrap:anywhere}
+.print-heading{overflow-wrap:anywhere}
+.topbar{border-bottom:4px solid var(--yellow);height:82px}
+.brand{gap:13px;letter-spacing:-.35px;font-size:1.12rem}
+.brand-university{font-weight:800;white-space:nowrap}
+.brand-divider{display:block;width:1px;height:24px;background:#b9c3cc;flex-shrink:0}
+.brand>.brand-product{font-weight:600;color:#334b65;white-space:nowrap}
+.topbar-end a{font-weight:600;color:var(--navy)}
+.topbar-end a:hover,.method a:hover{text-decoration:underline}
+h1{font-size:2.45rem;letter-spacing:-1.4px;line-height:1.17}
+.eyebrow{color:var(--navy);font-weight:800}
+.step{background:var(--yellow);border-color:var(--yellow);color:var(--navy);font-weight:800}
+.panel,.metric{border-radius:4px;box-shadow:none}
+.primary{background:var(--navy);color:#fff}
+.primary:hover{background:#164471}
+.generate{border-left:5px solid var(--yellow)}
+.subtle{background:#eef3f7}
+.secondary:hover,.subtle:hover{background:#e6eef5}
+.study-totals{background:#f3f6f8}
+.metric:first-child{border-top:5px solid var(--yellow)}
+.metric:first-child span,.metric:first-child small{color:#e4edf5}
+.badge{color:var(--navy);background:#eaf3f7;border-color:#acc8d8;font-weight:600}
+.badge.warning{color:#654700;background:#fff5d1;border-color:#e3bd50}
+.design-message{border-left-color:var(--navy);background:#eaf3f7;color:var(--navy)}
+.design-message.warning,.notice,.inline-warning{border-left-color:#c18c00;background:#fff7de;color:#584208}
+.view-tabs{background:#edf2f5}
+.survey-card{border-top-color:var(--yellow)}
+.role-tag{color:#4d3b07;background:#fff1bc}
+.frequency-level{background:#f2f5f7;border-color:#dce3e8}
+.method{border-top:4px solid var(--yellow)}
+@media(max-width:850px){.topbar{height:70px}}
+@media(max-width:480px){.brand{font-size:.88rem;gap:8px}.brand-divider{height:20px}.topbar{padding:0 14px}.page-heading h1{font-size:1.85rem}}
+
+.count-guide{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 20px;padding:14px;background:#f3f6f8}
+.count-guide span,.count-guide small{display:block;font-size:.78rem}
+.count-guide strong{display:block;font-size:1.6rem;margin:4px 0}
+.count-guide small{color:var(--muted)}
+.metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.profile-toolbar h3{margin:0;font-size:1rem}
+#print-root table{width:100%;border-collapse:collapse;table-layout:fixed}
+#print-root th,#print-root td{padding:7px;border:1px solid #777;overflow-wrap:anywhere;white-space:normal;font-size:10px}
+#print-root tr{break-inside:avoid}
+@media print{#print-root thead{display:table-header-group}#print-root h2{font-size:14px}}
+/* Keep long user-entered labels within screen and printed cards. */
+.survey-card{min-width:0}
+.survey-card dt,.survey-card dd{min-width:0;overflow-wrap:anywhere;flex:1 1 0}
+.frequency-row>span{min-width:0;overflow-wrap:anywhere}
+label[for="study-name"]{margin-top:16px}
+
+</style>
+  
+</head>
+<body>
+  <a class="skip-link" href="#study-form">Skip to study settings</a>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="Conjoint Design home"><span class="brand-university">Michigan Ross</span><span class="brand-divider" aria-hidden="true"></span><span class="brand-product">Conjoint Design</span></a>
+    <div class="topbar-end"><a href="#method">About the design</a></div>
+  </header>
+  <main id="top">
+    <div class="page-heading"><div><p class="eyebrow">CONJOINT ANALYSIS</p><h1>Create product profiles for your study</h1><p>Enter your attributes and levels. Then generate a set of profiles to include in a rating or ranking survey.</p></div><span class="model-note">Main effects design</span></div>
+    <div id="startup-notice" class="notice" role="status">Loading the study editor. If it does not appear, reopen the latest copy of this tool.</div>
+    <noscript><p class="error-box">JavaScript is required to create profiles. Enable JavaScript in your browser and reopen this page.</p></noscript>
+    <div class="workspace">
+      <section class="editor panel" aria-labelledby="editor-title">
+        <div class="section-heading"><span class="step">01</span><h2 id="editor-title">Enter attributes and levels</h2></div>
+        <form id="study-form" novalidate>
+        <fieldset id="study-controls" disabled aria-labelledby="editor-title">
+        <label class="field-label" for="example">Study</label>
+        <select id="example"><option value="custom">Custom study</option><optgroup label="Examples"><option value="carpet">Carpet cleaner</option><option value="amazon">Amazon Echo</option><option value="lyft">Lyft</option><option value="netflix">Netflix</option></optgroup></select>
+        <label class="field-label" for="study-name">Study name</label>
+        <input id="study-name" type="text" maxlength="100" placeholder="e.g., Coffee preferences" aria-describedby="study-name-help">
+        <p id="study-name-help" class="small muted">Use a name you can recognize in your results and downloaded files.</p>
+          <p class="small muted" id="attribute-help">Use 2 to 10 attributes, with 2 to 5 levels each.</p>
+          <div class="editor-labels"><span>Attribute</span><span>Levels, one per line</span></div>
+          <div id="attributes"></div>
+          <button class="button subtle add-attribute" type="button" id="add-attribute">+ Add attribute</button>
+          <div class="study-totals"><div><strong id="full-count">108</strong><span>possible combinations</span></div><div><strong id="parameter-count">9</strong><span>model parameters</span></div></div>
+          <div class="section-heading settings-heading"><span class="step">02</span><h2>Set the profile count</h2></div>
+          <div class="count-guide"><div><span>Absolute minimum</span><strong id="absolute-count">14</strong></div><div><span>Suggested minimum</span><strong id="suggested-count">18</strong></div></div>
+          <label for="minimum">How many profiles would you like to generate?</label><input id="minimum" type="number" min="14" max="128" required aria-describedby="recommendation count-warning">
+          <div class="suggestion"><p id="recommendation"></p><button class="text-button" type="button" id="use-suggestion">Use suggested minimum</button></div>
+          <p id="count-warning" class="inline-warning" hidden></p>
+          <div id="form-error" class="error-box" role="alert" tabindex="-1" hidden></div>
+          <button class="button primary generate" type="submit" id="generate">Generate profiles <span aria-hidden="true">→</span></button>
+        </fieldset>
+        </form>
+      </section>
+      <section class="results" aria-labelledby="results-title">
+        <div class="result-heading"><div class="section-heading"><span class="step">03</span><h2 id="results-title">Review the profiles</h2></div><span id="result-status" class="badge">Ready to generate</span></div>
+        <div id="stale-notice" class="notice" hidden>Settings have changed. Generate again to update these results.</div>
+        <div id="empty-state" class="empty-state panel"><h3>No profiles yet</h3><p>Enter your study settings and select Generate profiles to see the design.</p></div>
+        <div id="design-content" hidden>
+          <h3 id="study-title" class="study-title"></h3>
+          <div class="metric-grid"><div class="metric"><span>Profiles for estimation</span><strong id="metric-profiles"></strong><small id="metric-reduction"></small></div><div class="metric"><span>Residual degrees of freedom</span><strong id="metric-df"></strong><small id="metric-calculation"></small></div></div>
+          <div id="design-message" class="design-message"></div>
+          <div class="profile-panel panel">
+            <div class="profile-toolbar"><div class="view-tabs" role="tablist" aria-label="Profile display"><button id="table-tab" role="tab" aria-selected="true" aria-controls="table-view" tabindex="0">Table</button><button id="cards-tab" role="tab" aria-selected="false" aria-controls="cards-view" tabindex="-1">Survey cards</button></div><button id="restore" class="text-button" type="button" hidden>Restore all</button></div>
+            <div id="table-view" role="tabpanel" aria-labelledby="table-tab"><div class="table-scroll" tabindex="0" role="region" aria-label="Generated profile table"><table id="profile-table"></table></div><p class="table-footnote">Uncheck a profile to exclude it. The design checks will update.</p></div>
+            <div id="cards-view" role="tabpanel" aria-labelledby="cards-tab" hidden><div id="cards-grid" class="cards-grid"></div></div>
+            <div class="exports"><button class="button primary" id="download-profiles" type="button">Download table of profiles (CSV)</button><button class="text-button" id="download-report" type="button">Download design report</button><button class="text-button" id="print-profiles" type="button">Print survey cards</button></div>
+          </div>
+          <details class="diagnostics panel" open><summary>Design checks and level counts</summary><div id="checks" class="checks"></div><div id="frequencies"></div></details>
+        </div>
+        <p id="live-status" role="status" class="sr-only" aria-live="polite"></p>
+      </section>
+    </div>
+    <section id="method" class="method"><div><p class="eyebrow">ABOUT THE DESIGN</p><h2>How to read your results</h2><p>The tool creates profiles for a categorical main effects model. It does not collect responses or estimate preferences.</p></div><div class="method-content"><details open><summary>What do degrees of freedom tell me?</summary><p>Each attribute needs one fewer parameter than its number of levels. Add those parameters, plus one baseline, to get the total. Residual degrees of freedom equal the number of experimental profiles minus the number of parameters, as long as the model can estimate every main effect. This assumes one complete response per profile for an individual regression.</p></details><details><summary>How should I use the minimum counts?</summary><p>Use the suggested minimum as your starting point. You can choose a lower count, but it must meet the absolute minimum. The generator may use more profiles to meet the design checks. If there are fewer distinct combinations than the absolute minimum, add attributes or levels. These are course guidelines, not a statistical power calculation.</p></details><details><summary>What does “orthogonal” mean here?</summary><p>The levels of each pair of attributes occur independently, allowing their main effects to be estimated separately. The tool also checks that every level appears, every profile is distinct, and the model has full rank. Orthogonality does not always require equal counts for every level. The tool may produce different profiles from SPSS and does not guarantee the smallest possible design.</p></details><details><summary>What happens when I exclude profiles?</summary><p>The design checks update for the remaining profiles. Excluding even one profile can affect orthogonality. If fewer profiles remain than the absolute minimum, or the remaining design cannot estimate all main effects with positive residual degrees of freedom, profile exports and printing are disabled. Review the checks before using an edited design.</p></details><details><summary>Sources and scope</summary><p>This tool draws on <a href="https://hbr.org/1975/07/new-way-to-measure-consumers-judgments" target="_blank" rel="noreferrer">Green and Wind’s conjoint example</a>, <a href="https://www.ibm.com/docs/en/spss-statistics/32.0.0?topic=preference-generating-orthogonal-design" target="_blank" rel="noreferrer">IBM’s orthogonal design workflow</a>, and <a href="https://www.itl.nist.gov/div898/handbook/pri/section3/pri33a.htm" target="_blank" rel="noreferrer">NIST’s factorial design guidance</a>. The example studies use attributes from the supplied class reports; they do not reproduce the reports’ original profile lists.</p><p>You can enter 2 to 10 attributes with 2 to 5 levels each and generate up to 128 profiles. Some combinations may not have a design within those limits. This tool does not test interactions, collect responses, estimate utilities, or export SPSS files.</p></details></div></section>
+  </main>
+  <footer><span>Michigan Ross · Conjoint Design</span><span>For classroom conjoint analysis</span></footer>
+  <div id="print-root"></div>
+<script>
+/* Generated by npm run build. Edit the source modules, then rebuild. */
+(() => {
+  'use strict';
+  try {
+// Exact main-effects designs. See ../METHODS.md for construction and scope.
+const LIMITS = Object.freeze({ attributes: 10, levels: 5, profiles: 128 });
+
+function validateFactors(factors) {
+  if (!Array.isArray(factors) || factors.length < 2 || factors.length > LIMITS.attributes)
+    throw new Error('Use between 2 and 10 attributes.');
+  const names = new Set();
+  return factors.map((factor, i) => {
+    const name = String(factor?.name ?? '').trim();
+    if (!name || name.length > 80) throw new Error(`Attribute ${i + 1} needs a name of 1–80 characters.`);
+    if (names.has(name.toLowerCase())) throw new Error(`Attribute names must be different: ${name}.`);
+    names.add(name.toLowerCase());
+    if (!Array.isArray(factor.levels) || factor.levels.length < 2 || factor.levels.length > LIMITS.levels)
+      throw new Error(`${name} needs 2–5 levels.`);
+    const levels = factor.levels.map(x => String(x).trim());
+    if (levels.some(x => !x || x.length > 100)) throw new Error(`${name}: each level needs 1–100 characters.`);
+    if (new Set(levels.map(x => x.toLowerCase())).size !== levels.length)
+      throw new Error(`${name}: level names must be different.`);
+    return { name, levels };
+  });
+}
+
+function studySummary(factors) {
+  const parameters = 1 + factors.reduce((sum, f) => sum + f.levels.length - 1, 0);
+  const fullFactorial = factors.reduce((n, f) => n * f.levels.length, 1);
+  const absoluteMinimum = Math.ceil(1.5 * parameters);
+  const suggestedMinimum = 2 * parameters;
+  const defaultMinimum = Math.max(absoluteMinimum, Math.min(fullFactorial, suggestedMinimum));
+  return { parameters, fullFactorial, absoluteMinimum, suggestedMinimum, defaultMinimum };
+}
+
+function randomSource(seed) {
+  let state = 2166136261;
+  for (const c of String(seed)) state = Math.imul(state ^ c.charCodeAt(0), 16777619);
+  return () => {
+    state += 0x6D2B79F5;
+    let t = Math.imul(state ^ state >>> 15, 1 | state);
+    t ^= t + Math.imul(t ^ t >>> 7, 61 | t);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function shuffle(items, random) {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+function matrixRank(matrix) {
+  if (!matrix.length) return 0;
+  const a = matrix.map(row => [...row]);
+  let rank = 0;
+  for (let c = 0; c < a[0].length && rank < a.length; c++) {
+    let pivot = rank;
+    for (let r = rank + 1; r < a.length; r++)
+      if (Math.abs(a[r][c]) > Math.abs(a[pivot][c])) pivot = r;
+    if (Math.abs(a[pivot][c]) < 1e-9) continue;
+    [a[rank], a[pivot]] = [a[pivot], a[rank]];
+    const scale = a[rank][c];
+    for (let k = c; k < a[0].length; k++) a[rank][k] /= scale;
+    for (let r = rank + 1; r < a.length; r++) {
+      const multiple = a[r][c];
+      for (let k = c; k < a[0].length; k++) a[r][k] -= multiple * a[rank][k];
+    }
+    rank++;
+  }
+  return rank;
+}
+
+function analyzeDesign(rows, factors) {
+  const levels = factors.map(f => f.levels.length);
+  const n = rows.length;
+  if (rows.some(row => row.length !== levels.length || row.some((v, j) => !Number.isInteger(v) || v < 0 || v >= levels[j])))
+    throw new Error('A profile contains an invalid attribute level.');
+  const frequencies = levels.map(l => Array(l).fill(0));
+  for (const row of rows) row.forEach((v, j) => frequencies[j][v]++);
+  const missingLevels = frequencies.some(counts => counts.some(n => n === 0));
+  const balanced = n > 0 && frequencies.every(counts => counts.every(n => n === counts[0]));
+  const unique = new Set(rows.map(r => r.join(','))).size === n;
+  let independent = n > 0 && !missingLevels;
+  let maxPairDeviation = 0;
+  for (let a = 0; a < levels.length; a++) {
+    for (let b = a + 1; b < levels.length; b++) {
+      const pairs = Array.from({ length: levels[a] }, () => Array(levels[b]).fill(0));
+      for (const row of rows) pairs[row[a]][row[b]]++;
+      for (let x = 0; x < levels[a]; x++) for (let y = 0; y < levels[b]; y++) {
+        // Integer equality, independent of contrast coding and floating-point tolerance.
+        const delta = Math.abs(pairs[x][y] * n - frequencies[a][x] * frequencies[b][y]);
+        if (delta !== 0) independent = false;
+        maxPairDeviation = Math.max(maxPairDeviation, n ? delta / (n * n) : 0);
+      }
+    }
+  }
+  const matrix = rows.map(row => [1, ...levels.flatMap((l, j) =>
+    Array.from({ length: l - 1 }, (_, v) => Number(row[j] === v + 1)))]);
+  const parameters = studySummary(factors).parameters;
+  const rank = matrixRank(matrix);
+  const estimable = rank === parameters;
+  return { n, parameters, rank, estimable, residualDf: estimable ? n - parameters : null,
+    unique, independent, balanced, frequencies, missingLevels, maxPairDeviation };
+}
+
+function digits(value, base, length) {
+  const result = Array(length).fill(0);
+  for (let i = length - 1; i >= 0; i--) { result[i] = value % base; value = Math.floor(value / base); }
+  return result;
+}
+
+// GF(4) = GF(2)[x]/(x²+x+1); integers 0..3 encode polynomial coefficients.
+function multiply(a, b, q) {
+  if (q !== 4) return (a * b) % q;
+  let result = 0;
+  while (b) { if (b & 1) result ^= a; b >>= 1; a <<= 1; if (a & 4) a ^= 7; }
+  return result;
+}
+function add(a, b, q) { return q === 4 ? a ^ b : (a + b) % q; }
+
+const fieldCache = new Map();
+function fieldArray(q, m) {
+  const key = `${q}:${m}`;
+  if (fieldCache.has(key)) return fieldCache.get(key);
+  const vectors = Array.from({ length: q ** m }, (_, i) => digits(i, q, m));
+  const directions = vectors.filter(v => v.find(x => x !== 0) === 1);
+  // Basis columns first so uncollapsed projections retain distinct rows.
+  directions.sort((a, b) => a.filter(Boolean).length - b.filter(Boolean).length);
+  const rows = vectors.map(v => directions.map(d => d.reduce((sum, c, i) => add(sum, multiply(c, v[i], q), q), 0)));
+  const result = { rows, columns: directions.length };
+  fieldCache.set(key, result);
+  return result;
+}
+
+const L18 = [
+  '0000000','0021011','0112111','0100122','0221222','0212200',
+  '1011120','1002221','1120201','1111002','1202012','1220110',
+  '2022102','2010212','2101210','2122020','2210021','2201101'
+].map(row => [...row].map(Number));
+
+function mapColumns(base, q, levels, columns, random) {
+  const permutations = levels.map(l => shuffle(Array.from({ length: l }, (_, i) => i), random));
+  return base.map(row => levels.map((l, i) => permutations[i][Math.floor(row[columns[i]] * l / q)]));
+}
+
+function cartesian(levels) {
+  return levels.reduce((rows, l) => rows.flatMap(row => Array.from({ length: l }, (_, v) => [...row, v])), [[]]);
+}
+
+function nativeProduct(levels, combineBinaryAndFour = false) {
+  const groups = new Map();
+  levels.forEach((l, index) => {
+    const q = combineBinaryAndFour && (l === 2 || l === 4) ? 4 : l;
+    if (!groups.has(q)) groups.set(q, []);
+    groups.get(q).push(index);
+  });
+  let output = [Array(levels.length).fill(0)];
+  for (const [q, indices] of groups) {
+    let m = 1;
+    while ((q ** m - 1) / (q - 1) < indices.length) m++;
+    if (output.length * q ** m > LIMITS.profiles) return null;
+    const base = fieldArray(q, m).rows;
+    output = output.flatMap(row => base.map(code => {
+      const copy = [...row];
+      indices.forEach((index, j) => { copy[index] = Math.floor(code[j] * levels[index] / q); });
+      return copy;
+    }));
+  }
+  return output;
+}
+
+function binaryWithFourLevels(levels) {
+  const indices = levels.map((l, i) => i).filter(i => levels[i] === 2 || levels[i] === 4);
+  if (!indices.length) return null;
+  indices.sort((a, b) => levels[b] - levels[a]);
+  for (let m = 2; 2 ** m <= LIMITS.profiles; m++) {
+    const used = new Set();
+    const assignments = new Map();
+    for (const index of indices) {
+      let found = false;
+      for (let a = 1; a < 2 ** m && !found; a++) {
+        if (used.has(a)) continue;
+        if (levels[index] === 2) { assignments.set(index, [a]); used.add(a); found = true; }
+        else for (let b = a + 1; b < 2 ** m && !found; b++) {
+          if (used.has(b) || used.has(a ^ b)) continue;
+          assignments.set(index, [a, b]);
+          [a, b, a ^ b].forEach(v => used.add(v)); found = true;
+        }
+      }
+    }
+    if (assignments.size !== indices.length) continue;
+    const parity = n => { let p = 0; while (n) { p ^= n & 1; n >>= 1; } return p; };
+    let rows = Array.from({ length: 2 ** m }, (_, r) => levels.map((l, i) =>
+      assignments.has(i) ? assignments.get(i).reduce((v, a, bit) => v + parity(a & r) * 2 ** bit, 0) : 0));
+    const others = levels.map((l, i) => i).filter(i => !assignments.has(i));
+    if (others.length) {
+      const extra = nativeProduct(others.map(i => levels[i]));
+      if (!extra || extra.length * rows.length > LIMITS.profiles) return null;
+      rows = rows.flatMap(row => extra.map(values => { const copy = [...row]; others.forEach((i, j) => { copy[i] = values[j]; }); return copy; }));
+    }
+    if (new Set(rows.map(r => r.join(','))).size === rows.length) return rows;
+  }
+  return null;
+}
+
+function findCandidates(factors, seed = '2026') {
+  factors = validateFactors(factors);
+  const levels = factors.map(f => f.levels.length);
+  const { fullFactorial } = studySummary(factors);
+  const random = randomSource(seed);
+  const candidates = [];
+  const addCandidate = (rows, construction) => {
+    if (!rows || rows.length > LIMITS.profiles || rows.length > fullFactorial) return;
+    if (new Set(rows.map(r => r.join(','))).size !== rows.length) return;
+    const diagnostics = analyzeDesign(rows, factors);
+    if (!diagnostics.estimable || !diagnostics.independent || diagnostics.missingLevels) return;
+    const existing = candidates.find(c => c.rows.length === rows.length && c.diagnostics.balanced === diagnostics.balanced);
+    if (!existing) candidates.push({ rows, construction, diagnostics });
+  };
+  if (levels.every(l => l <= 3) && levels.length <= 7) {
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const cols = attempt === 0 ? Array.from({ length: 7 }, (_, i) => i) : shuffle(Array.from({ length: 7 }, (_, i) => i), random);
+      addCandidate(mapColumns(L18, 3, levels, cols, random), 'Adapted 18-run reference array');
+    }
+  }
+  for (const q of [2, 3, 4, 5]) {
+    if (levels.some(l => l > q)) continue;
+    for (let m = 1; q ** m <= LIMITS.profiles; m++) {
+      const count = (q ** m - 1) / (q - 1);
+      if (count < levels.length || q ** m > fullFactorial) continue;
+      const base = fieldArray(q, m);
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const cols = Array.from({ length: base.columns }, (_, i) => i);
+        addCandidate(mapColumns(base.rows, q, levels, attempt === 0 ? cols : shuffle(cols, random), random),
+          `Finite-field array (${q} levels, ${q ** m} runs), adapted to this study`);
+      }
+    }
+  }
+  addCandidate(nativeProduct(levels), 'Product of orthogonal arrays by level count');
+  if (levels.includes(4)) addCandidate(nativeProduct(levels, true), 'Product of mixed-level orthogonal arrays');
+  addCandidate(binaryWithFourLevels(levels), 'Binary contrast construction with four-level factors');
+  // Two disjoint copies with unchanged marginal counts retain pairwise independence.
+  for (const candidate of [...candidates]) {
+    if (candidate.rows.length * 2 > Math.min(LIMITS.profiles, fullFactorial)) continue;
+    for (let attempt = 0; attempt < 24; attempt++) {
+      const maps = candidate.diagnostics.frequencies.map(counts => {
+        const map = counts.map((_, i) => i);
+        for (const count of new Set(counts)) {
+          const slots = map.filter(i => counts[i] === count);
+          const values = shuffle(slots, random);
+          slots.forEach((i, j) => { map[i] = values[j]; });
+        }
+        return map;
+      });
+      addCandidate([...candidate.rows, ...candidate.rows.map(row => row.map((v, j) => maps[j][v]))], `Two disjoint, count-preserving copies of: ${candidate.construction}`);
+    }
+  }
+  if (fullFactorial <= LIMITS.profiles) addCandidate(cartesian(levels), 'Full factorial');
+  return candidates.sort((a, b) => a.rows.length - b.rows.length || Number(b.diagnostics.balanced) - Number(a.diagnostics.balanced));
+}
+
+function generateDesign({ factors, minimum, seed = '', equalCounts = false }) {
+  factors = validateFactors(factors);
+  const summary = studySummary(factors);
+  if (summary.fullFactorial < summary.absoluteMinimum)
+    throw new Error(`This study has only ${summary.fullFactorial} distinct combinations, fewer than the absolute minimum of ${summary.absoluteMinimum}. Add an attribute or level to meet the course rule.`);
+  if (!Number.isInteger(minimum) || minimum < summary.absoluteMinimum || minimum > LIMITS.profiles)
+    throw new Error(`Request a minimum of ${summary.absoluteMinimum}–128 profiles. The absolute minimum is ${summary.absoluteMinimum} profiles.`);
+  if (typeof equalCounts !== 'boolean') throw new Error('Equal level counts must be on or off.');
+  if (typeof seed !== 'string' || seed.length > 80) throw new Error('Use no more than 80 characters for the optional random seed.');
+  seed = seed.trim() || '2026';
+  if (minimum > summary.fullFactorial) throw new Error(`There are only ${summary.fullFactorial} distinct combinations. Lower the minimum to at least ${summary.absoluteMinimum}.`);
+  const candidates = findCandidates(factors, seed).filter(c => !equalCounts || c.diagnostics.balanced);
+  const selected = candidates.find(c => c.rows.length >= minimum && c.rows.length >= summary.absoluteMinimum && c.rows.length > summary.parameters);
+  if (!selected) {
+    const sizes = [...new Set(candidates.filter(c => c.rows.length >= summary.absoluteMinimum && c.rows.length > summary.parameters).map(c => c.rows.length))];
+    throw new Error(`No verified design meets these settings within the 128-profile limit.${sizes.length ? ` Available counts: ${sizes.join(', ')}.` : ''} Try a lower minimum within the course rule, or allow unequal level counts.`);
+  }
+  const profiles = shuffle(selected.rows, randomSource(`${seed}:output`))
+    .map((code, i) => ({ id: `P${String(i + 1).padStart(3, '0')}`, code, card: i + 1, included: true }));
+  return { factors, minimum, seed, equalCounts, profiles,
+    diagnostics: analyzeDesign(profiles.map(p => p.code), factors), summary };
+}
+
+function revalidate(design) {
+  return analyzeDesign(design.profiles.filter(p => p.included).map(p => p.code), design.factors);
+}
+
+// Protect spreadsheet cells from formula interpretation without modifying on-screen labels.
+function csvCell(value) {
+  let text = String(value);
+  if (/^[\s\uFEFF]*[=+@-]/.test(text) || /^[\t\r\n]/.test(text)) text = `'${text}`;
+  return `"${text.replaceAll('"', '""')}"`;
+}
+
+function exportCsv(design) {
+  const diagnostics = revalidate(design);
+  const { absoluteMinimum } = studySummary(design.factors);
+  if (diagnostics.n < absoluteMinimum)
+    throw new Error(`Restore at least ${absoluteMinimum} profiles to meet the absolute minimum before exporting.`);
+  if (!diagnostics.estimable || !diagnostics.unique || diagnostics.residualDf < 1)
+    throw new Error('Restore enough profiles to estimate all main effects with residual degrees of freedom before exporting.');
+  const header = ['Profile', ...design.factors.map(f => f.name)];
+  const rows = design.profiles.filter(p => p.included).map(p => [
+    p.card, ...p.code.map((v, j) => design.factors[j].levels[v])
+  ]);
+  return '\uFEFF' + [header, ...rows].map(row => row.map(csvCell).join(',')).join('\r\n');
+}
+
+const EXAMPLES = {
+  carpet: { name: 'Carpet cleaner', note: 'Based on the Green and Wind teaching example', factors: [
+    { name: 'Package design', levels: ['A', 'B', 'C'] },
+    { name: 'Brand', levels: ['K2R', 'Glory', 'Bissell'] },
+    { name: 'Price', levels: ['$1.19', '$1.39', '$1.59'] },
+    { name: 'Good Housekeeping seal', levels: ['No', 'Yes'] },
+    { name: 'Money-back guarantee', levels: ['No', 'Yes'] }
+  ] },
+  amazon: { name: 'Amazon Echo', note: 'Attributes from a 2017 student project', factors: [
+    { name: 'Brand', levels: ['Amazon', 'Google'] },
+    { name: 'Speaker', levels: ['Basic (0.6 inch)', 'Advanced (2.5 inch)'] },
+    { name: 'Screen', levels: ['None', 'Small (2.5 inch)', 'Large (7 inch)'] },
+    { name: 'Built-in hub', levels: ['None', 'Equipped'] },
+    { name: 'Camera', levels: ['None', 'Equipped'] },
+    { name: 'Price', levels: ['$50', '$120', '$190', '$260'] }
+  ] },
+  lyft: { name: 'Lyft', note: 'Attributes from a 2014 student project', factors: [
+    { name: 'Monthly fee', levels: ['$0 (15 rides)', '$10', '$15'] },
+    { name: 'Queue priority', levels: ['Yes', 'No'] },
+    { name: 'Rider credits', levels: ['$10 per $100 spent', '$10 per 10 rides'] },
+    { name: 'Demand-period fare markup', levels: ['No markup', '15% cap', '25% cap'] }
+  ] },
+  netflix: { name: 'Netflix', note: 'Attributes from a 2014 student project', factors: [
+    { name: 'Content', levels: ['Original only', 'Third party only', 'Original and third party'] },
+    { name: 'Contract', levels: ['Monthly, no contract', 'One year'] },
+    { name: 'Advertising', levels: ['None', 'Display ads', 'Video interruptions'] },
+    { name: 'Streaming quality', levels: ['SD', 'SD + HD', 'SD + HD + 4K'] },
+    { name: 'Monthly price', levels: ['Free', '$10', '$20', '$30'] }
+  ] }
+};
+
+
+const $ = id => document.getElementById(id);
+const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let factors = [];
+let design = null;
+let stale = false;
+let busy = false;
+let exportUrl = null;
+let currentView = 'table';
+let manualProfileCount = false;
+
+function readStudyName() {
+  return $('study-name').value.trim().slice(0, 100) || 'Custom study';
+}
+
+function exportFilename(suffix) {
+  const name = design.studyName.normalize('NFKC').toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '').slice(0, 80).replace(/-+$/g, '') || 'conjoint-study';
+  return `${name}-${suffix}`;
+}
+
+function renameStudy() {
+  if (design) {
+    design.studyName = readStudyName();
+    $('study-title').textContent = design.studyName;
+  }
+  clearExport();
+  $('print-root').replaceChildren();
+}
+
+function readFactors() {
+  return [...$('attributes').querySelectorAll('.attribute-row')].map(row => ({
+    name: row.querySelector('input').value,
+    levels: row.querySelector('textarea').value.split('\n').map(x => x.trim()).filter(Boolean)
+  }));
+}
+
+function renderEditor() {
+  $('attributes').innerHTML = factors.map((f, i) => `<div class="attribute-row">
+    <label class="sr-only" for="name-${i}">Attribute ${i + 1} name</label><input id="name-${i}" value="${escape(f.name)}" maxlength="80" placeholder="Attribute name">
+    <label class="sr-only" for="levels-${i}">Levels for attribute ${i + 1}, one per line</label><textarea id="levels-${i}" rows="${Math.max(2, f.levels.length)}" placeholder="One level per line">${escape(f.levels.join('\n'))}</textarea>
+    <button class="remove" type="button" data-remove="${i}" aria-label="Remove attribute ${i + 1}" ${factors.length <= 2 ? 'disabled' : ''}>×</button></div>`).join('');
+  $('add-attribute').disabled = factors.length >= LIMITS.attributes;
+  $('add-attribute').textContent = factors.length >= LIMITS.attributes ? `Maximum of ${LIMITS.attributes} attributes` : '+ Add attribute';
+}
+
+function summaryFromEditor() {
+  try {
+    const valid = validateFactors(readFactors());
+    const summary = studySummary(valid);
+    $('full-count').textContent = summary.fullFactorial.toLocaleString();
+    $('parameter-count').textContent = summary.parameters;
+    $('absolute-count').textContent = summary.absoluteMinimum;
+    $('suggested-count').textContent = summary.suggestedMinimum;
+    $('minimum').min = summary.absoluteMinimum;
+    if (!manualProfileCount) {
+      $('minimum').value = summary.fullFactorial < summary.absoluteMinimum ? '' : summary.defaultMinimum;
+    }
+    $('recommendation').textContent = 'If you ask for too few profiles, the generated design may use more profiles to meet the design checks.';
+    $('use-suggestion').disabled = summary.suggestedMinimum > summary.fullFactorial;
+    const requested = $('minimum').valueAsNumber;
+    const warning = $('count-warning');
+    const impossible = summary.fullFactorial < summary.absoluteMinimum;
+    warning.hidden = !impossible && (!Number.isFinite(requested) || requested >= summary.suggestedMinimum);
+    warning.textContent = impossible
+      ? `Only ${summary.fullFactorial} distinct combinations are possible, fewer than the absolute minimum of ${summary.absoluteMinimum}. Add an attribute or level.`
+      : requested < summary.absoluteMinimum
+      ? `Enter at least ${summary.absoluteMinimum} profiles to meet the absolute minimum.`
+      : summary.fullFactorial < summary.suggestedMinimum
+      ? `Only ${summary.fullFactorial} distinct combinations are possible. The absolute minimum is achievable, but the suggested minimum is not.`
+      : 'This is below the suggested minimum. Review the degrees of freedom before using the design.';
+    return summary;
+  } catch (error) {
+    if (!manualProfileCount) $('minimum').value = '';
+    $('full-count').textContent = '…'; $('parameter-count').textContent = '…';
+    $('absolute-count').textContent = '…'; $('suggested-count').textContent = '…';
+    $('recommendation').textContent = error.message;
+    $('use-suggestion').disabled = true; $('count-warning').hidden = true;
+    return null;
+  }
+}
+
+function markStale() {
+  if (design) {
+    stale = true; $('stale-notice').hidden = false;
+    $('result-status').className = 'badge warning';
+    $('result-status').textContent = 'Settings changed';
+  }
+  $('form-error').hidden = true;
+  $('print-root').replaceChildren();
+  clearExport();
+  summaryFromEditor();
+  updateExportState();
+}
+
+function markCustom() {
+  $('example').value = 'custom';
+  markStale();
+}
+
+function startCustomStudy(focus = true) {
+  factors = Array.from({ length: 2 }, () => ({ name: '', levels: ['Level 1', 'Level 2'] }));
+  $('study-name').value = '';
+  design = null; stale = false;
+  renderEditor();
+  manualProfileCount = false;
+  $('minimum').value = '';
+  $('stale-notice').hidden = true;
+  $('design-content').hidden = true;
+  $('empty-state').hidden = false;
+  $('result-status').className = 'badge';
+  $('result-status').textContent = 'Enter your attributes';
+  setView('table');
+  markCustom();
+  $('live-status').textContent = 'New custom study. Enter a study name, attributes and levels.';
+  if (focus) $('study-name').focus();
+}
+
+function loadExample(key) {
+  if (!EXAMPLES[key]) return;
+  factors = structuredClone(EXAMPLES[key].factors);
+  $('study-name').value = EXAMPLES[key].name;
+  $('example').value = key;
+  renderEditor();
+  manualProfileCount = false;
+  markStale();
+}
+
+function updateExportState() {
+  const d = design ? revalidate(design) : null;
+  const blocked = !d || stale || busy || !d.estimable || !d.unique || d.residualDf < 1 || d.n < design.summary.absoluteMinimum;
+  for (const id of ['download-profiles','print-profiles']) $(id).disabled = blocked;
+  $('download-report').disabled = !design || stale || busy;
+}
+
+function profileTableMarkup(profiles, editable = false) {
+  const header = `${editable ? '<th scope="col"><span class="sr-only">Include profile</span></th>' : ''}<th scope="col">Profile</th>${design.factors.map(f => `<th scope="col">${escape(f.name)}</th>`).join('')}`;
+  return `<thead><tr>${header}</tr></thead><tbody>${profiles.map(p => `<tr class="${p.included ? '' : 'excluded'}">${editable ? `<td><input type="checkbox" data-profile="${p.id}" aria-label="Include profile ${p.card}" ${p.included ? 'checked' : ''}></td>` : ''}<td>${p.card}</td>${p.code.map((v, j) => `<td>${escape(design.factors[j].levels[v])}</td>`).join('')}</tr>`).join('')}</tbody>`;
+}
+
+function cardsMarkup(profiles) {
+  return profiles.map(p => `<article class="survey-card"><h3>Profile ${p.card}</h3><dl>${design.factors.map((f, i) => `<div><dt>${escape(f.name)}</dt><dd>${escape(f.levels[p.code[i]])}</dd></div>`).join('')}</dl></article>`).join('');
+}
+
+function setView(view, focus = false) {
+  currentView = view;
+  for (const v of ['table', 'cards']) {
+    $(`${v}-view`).hidden = v !== view;
+    $(`${v}-tab`).setAttribute('aria-selected', String(v === view));
+    $(`${v}-tab`).tabIndex = v === view ? 0 : -1;
+  }
+  $('print-root').replaceChildren();
+  if (focus) $(`${view}-tab`).focus();
+}
+
+function renderResults() {
+  if (!design) return;
+  clearExport();
+  $('print-root').replaceChildren();
+  const d = revalidate(design);
+  const included = design.profiles.filter(p => p.included);
+  const excluded = design.profiles.length - included.length;
+  $('empty-state').hidden = true; $('design-content').hidden = false;
+  $('study-title').textContent = design.studyName;
+  $('metric-profiles').textContent = d.n;
+  $('metric-reduction').textContent = `out of ${design.summary.fullFactorial.toLocaleString()} possible combinations`;
+  $('metric-df').textContent = d.residualDf ?? 'N/A';
+  $('metric-calculation').textContent = d.estimable ? `${d.n} profiles − ${d.parameters} parameters` : `Only ${d.rank} of ${d.parameters} parameters estimable`;
+  const invalid = !d.estimable || d.residualDf < 1 || d.n < design.summary.absoluteMinimum;
+  const lowMargin = d.estimable && d.n < design.summary.suggestedMinimum;
+  const warning = invalid || !d.independent || lowMargin;
+  $('result-status').className = `badge${stale ? ' warning' : invalid ? ' invalid' : warning ? ' warning' : ''}`;
+  $('result-status').textContent = stale ? 'Settings changed' : invalid ? 'Design needs revision' : !d.independent ? 'Orthogonality changed' : lowMargin ? 'Review profile count' : 'Orthogonal design';
+  const messages = [];
+  if (invalid) messages.push(`Restore profiles before exporting. At least ${design.summary.absoluteMinimum} profiles are required, with every main effect estimable and positive residual degrees of freedom.`);
+  else if (!d.independent) messages.push('The remaining profiles are no longer orthogonal. Main effects can still be estimated, but the estimates may be correlated. Review the design checks before use.');
+  else messages.push(`The design can estimate all main effects, and each pair of attributes is independent. It leaves ${d.residualDf} residual degrees of freedom per complete respondent.`);
+  if (lowMargin) messages.push('The profile count is below the suggested minimum. A design can be estimable without providing enough precision for your study.');
+  if (!d.balanced && !invalid) messages.push('Some levels appear more often than others. Review the counts below.');
+  if (!excluded && d.n !== design.minimum) messages.push(`You requested at least ${design.minimum} profiles. This design uses ${d.n} to meet its design requirements.`);
+  if (d.n === design.summary.fullFactorial) messages.push('This is the full factorial: every possible combination is included.');
+  $('design-message').className = `design-message${warning ? ' warning' : ''}`;
+  $('design-message').innerHTML = messages.map(m => `<p>${escape(m)}</p>`).join('');
+  $('restore').hidden = !excluded;
+  $('profile-table').innerHTML = profileTableMarkup(design.profiles, true);
+  $('cards-grid').innerHTML = cardsMarkup(included);
+  const checks = [[d.estimable, `Model rank: ${d.rank} of ${d.parameters}`], [d.independent, 'Attribute pairs independent'], [d.unique, 'Profiles are distinct'], [!d.missingLevels, 'Every level appears'], [d.balanced, 'Equal level counts']];
+  $('checks').innerHTML = checks.map(([ok, label]) => `<span class="check ${ok ? '' : 'fail'}"><b aria-label="${ok ? 'Pass' : 'Not met'}">${ok ? '✓' : '!'}</b>${label}</span>`).join('');
+  $('frequencies').innerHTML = design.factors.map((f, i) => `<div class="frequency-row"><span>${escape(f.name)}</span><div class="frequency-levels">${f.levels.map((l, j) => `<span class="frequency-level">${escape(l)}<strong>${d.frequencies[i][j]}</strong></span>`).join('')}</div></div>`).join('');
+  updateExportState();
+}
+
+async function generate() {
+  if (busy) return;
+  busy = true; $('generate').disabled = true; $('generate').textContent = 'Generating profiles…';
+  $('study-controls').disabled = true;
+  document.querySelector('.results').setAttribute('aria-busy', 'true');
+  $('form-error').hidden = true; updateExportState();
+  try {
+    await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
+    const result = generateDesign({ factors: readFactors(), minimum: $('minimum').valueAsNumber });
+    design = { ...result, studyName: readStudyName() }; stale = false; $('stale-notice').hidden = true;
+    renderResults();
+    $('live-status').textContent = `Generated ${design.diagnostics.n} profiles. ${design.diagnostics.residualDf} residual degrees of freedom.`;
+    return design;
+  } catch (error) {
+    $('form-error').textContent = error.message; $('form-error').hidden = false;
+    $('form-error').focus();
+    $('live-status').textContent = `Generation failed: ${error.message}`;
+    throw error;
+  } finally {
+    busy = false; $('generate').disabled = false; $('generate').innerHTML = 'Generate profiles <span aria-hidden="true">→</span>';
+    $('study-controls').disabled = false;
+    document.querySelector('.results').setAttribute('aria-busy', 'false');
+    updateExportState();
+  }
+}
+
+function clearExport() {
+  if (exportUrl) URL.revokeObjectURL(exportUrl);
+  exportUrl = null;
+}
+
+function download(name, data, type) {
+  clearExport();
+  exportUrl = URL.createObjectURL(new Blob([data], { type }));
+  const a = document.createElement('a');
+  a.href = exportUrl; a.download = name; a.hidden = true;
+  document.body.append(a);
+  // Keep the file URL alive until the next export or edit for deferred downloads.
+  try { a.click(); } finally { a.remove(); }
+}
+
+function exportDesign() {
+  if (stale || !design) return;
+  try {
+    download(exportFilename('profiles.csv'), exportCsv(design), 'text/csv;charset=utf-8');
+    $('live-status').textContent = 'Profiles prepared for download.';
+  } catch (error) { $('form-error').textContent = error.message; $('form-error').hidden = false; }
+}
+
+$('study-name').addEventListener('input', renameStudy);
+$('attributes').addEventListener('input', markCustom);
+$('attributes').addEventListener('click', event => {
+  const button = event.target.closest('[data-remove]'); if (!button) return;
+  factors = readFactors();
+  if (busy || factors.length <= 2) return;
+  const index = Number(button.dataset.remove);
+  factors.splice(index, 1); renderEditor(); markCustom();
+  $(`name-${Math.min(index, factors.length - 1)}`).focus();
+  $('live-status').textContent = `Attribute removed. ${factors.length} attributes remain.`;
+});
+$('add-attribute').addEventListener('click', () => {
+  factors = readFactors();
+  if (busy || factors.length >= LIMITS.attributes) return;
+  factors.push({ name: '', levels: ['Level 1','Level 2'] });
+  renderEditor(); markCustom(); $(`name-${factors.length - 1}`).focus();
+  $('live-status').textContent = `Attribute ${factors.length} added. Enter its name and levels.`;
+});
+$('example').addEventListener('change', event => { if (event.target.value === 'custom') startCustomStudy(); else loadExample(event.target.value); });
+$('minimum').addEventListener('input', () => { manualProfileCount = true; markStale(); });
+$('use-suggestion').addEventListener('click', () => { const s = summaryFromEditor(); if (s) { manualProfileCount = false; markStale(); } });
+$('study-form').addEventListener('submit', event => { event.preventDefault(); generate().catch(() => {}); });
+$('profile-table').addEventListener('change', event => {
+  const input = event.target.closest('[data-profile]'); if (!input) return;
+  design.profiles.find(p => p.id === input.dataset.profile).included = input.checked;
+  const id = input.dataset.profile;
+  renderResults(); $('profile-table').querySelector(`[data-profile="${id}"]`)?.focus({ preventScroll: true });
+  const d = revalidate(design); $('live-status').textContent = `${d.n} profiles included. ${d.independent ? 'Pairwise independence preserved.' : 'Pairwise independence lost.'}`;
+});
+$('restore').addEventListener('click', () => { design.profiles.forEach(p => { p.included = true; }); renderResults(); $('live-status').textContent = 'All original profiles restored.'; });
+for (const view of ['table', 'cards']) $(`${view}-tab`).addEventListener('click', () => setView(view));
+document.querySelector('.view-tabs').addEventListener('keydown', event => {
+  if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+    event.preventDefault();
+    setView(event.key === 'Home' ? 'table' : event.key === 'End' ? 'cards' : currentView === 'table' ? 'cards' : 'table', true);
+  }
+});
+$('download-profiles').addEventListener('click', exportDesign);
+$('download-report').addEventListener('click', () => {
+  if (!design || stale) return;
+  download(exportFilename('design-report.json'), JSON.stringify({ format: 'conjoint-studio-v2', generatedAt: new Date().toISOString(), ...design, diagnostics: revalidate(design), assumptions: 'Categorical additive main effects; one complete response per profile per respondent. Minimum counts follow the course guidelines and are not a statistical power calculation.' }, null, 2), 'application/json');
+  $('live-status').textContent = 'Design report prepared for download.';
+});
+$('print-profiles').addEventListener('click', () => {
+  const profiles = design.profiles.filter(p => p.included);
+  const content = `<div class="print-grid">${cardsMarkup(profiles)}</div>`;
+  $('print-root').innerHTML = `<h1 class="print-heading">${escape(design.studyName)}</h1><h2>Survey cards</h2>${content}`;
+  const previousTitle = document.title;
+  document.title = exportFilename('survey-cards');
+  window.addEventListener('afterprint', () => { document.title = previousTitle; }, { once: true });
+  window.print();
+});
+
+startCustomStudy(false);
+$('recommendation').textContent = 'Enter your attributes and levels to see the minimum counts.';
+$('startup-notice').hidden = true;
+$('study-controls').disabled = false;
+
+// Optional structured access shares the same visible controls and generation action.
+if (document.modelContext?.registerTool) {
+  const lifecycle = new AbortController();
+  window.addEventListener('pagehide', () => lifecycle.abort(), { once: true });
+  const register = tool => {
+    try { Promise.resolve(document.modelContext.registerTool(tool, { signal: lifecycle.signal })).catch(() => {}); } catch { /* Optional browser capability. */ }
+  };
+  register({ name: 'read_conjoint_design', title: 'Read current conjoint design', description: 'Read current generated profiles and diagnostics. Reports whether inputs have changed since generation.', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, untrustedContentHint: true }, execute: () => design ? { stale, studyName: design.studyName, factors: design.factors, profiles: design.profiles, diagnostics: revalidate(design) } : { ready: false } });
+  register({ name: 'generate_conjoint_example', title: 'Generate a classroom conjoint example', description: 'Load a named example, replace the current editor and results, and generate checked profiles. Does not download or share results.', inputSchema: { type: 'object', properties: { example: { type: 'string', enum: Object.keys(EXAMPLES) }, minimum: { type: 'integer', minimum: 1, maximum: 128 } }, required: ['example'], additionalProperties: false }, annotations: { readOnlyHint: false, untrustedContentHint: false }, execute: async input => {
+    if (!input || !Object.hasOwn(EXAMPLES, input.example) || (input.minimum !== undefined && (!Number.isInteger(input.minimum) || input.minimum < 1 || input.minimum > 128)) || Object.keys(input).some(key => !['example', 'minimum'].includes(key))) throw new Error('Choose a valid example and minimum profile count.');
+    if (busy) throw new Error('A design is already being generated.');
+    // Validate generation before changing the visible study, so invalid requests are atomic.
+    const options = { factors: EXAMPLES[input.example].factors, minimum: input.minimum ?? studySummary(EXAMPLES[input.example].factors).defaultMinimum };
+    generateDesign(options);
+    loadExample(input.example); manualProfileCount = input.minimum !== undefined; $('minimum').value = options.minimum;
+    const result = await generate(); return { profiles: result.diagnostics.n, residualDf: result.diagnostics.residualDf };
+  } });
+}
+
+  } catch (error) {
+    const notice = document.getElementById('startup-notice');
+    notice.hidden = false;
+    notice.className = 'error-box';
+    notice.setAttribute('role', 'alert');
+    notice.textContent = 'The study editor could not start. Reopen the latest copy in an up-to-date browser. If the problem continues, ask your instructor for a new copy.';
+    console.error('Conjoint Design could not start:', error);
+  }
+})();
+
+</script>
+</body>
+</html>

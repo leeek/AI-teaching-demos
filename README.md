@@ -10,6 +10,11 @@ This repository is a shared collection of interactive teaching demos built with 
 ## Demo Library
 
 - [Price Elasticity Demo](./demos/price-elasticity/price-elasticity-demo.html) - linear demand, price elasticity, and the revenue-maximizing price.
+- [Segmentation & Targeting Game](./demos/segmentation-targeting-game/segmentation-targeting-game.html) - define MECE segments, choose whom to advertise to, and see why targeted ads overstate their own effect (MKT 300).
+- [Conjoint Design Studio](./demos/conjoint-design-studio/conjoint-design-studio.html) - generate and check product profiles for a classroom conjoint study (Pricing).
+- [Silicon Subject Lab](./demos/silicon-subject-lab/silicon-subject-lab.html) - build and interview synthetic consumers one at a time without mean regression (Strategic Brand Management).
+- [Brand Positioning Analysis](./demos/brand-positioning-analysis/brand-positioning-analysis.html) - compare brand identity with brand image against an intended positioning (Strategic Brand Management).
+- [Customer Lifetime Value Tools](./demos/customer-lifetime-value-tools/) - cash-flow timing, survivor tables, BG parameters and the coin shake-out (MKT 626).
 
 ## Getting Started
 

@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Segmentation &amp; Targeting Game</title>
+<!--
+  SEGMENTATION & TARGETING GAME
+  For: Justin Huang, MKT 300 / Masters of Management marketing core
+  Single-file HTML app. No server, no auth. Everything runs in browser memory.
+
+  TO MODIFY (or ask generative AI to): all tunable parameters live in the
+  CONFIG object at the top of the script below. Game logic reads only from
+  CONFIG: swap context strings, coefficients, costs, and rounds there.
+-->
+<style>
+  :root {
+    /* Michigan Ross palette: Blue #00274C, Maize #FFCB05 */
+    --bg: #f5f6f8; --card: #ffffff; --ink: #1f2430; --muted: #6b7280;
+    --accent: #00274C; --accent-soft: #e7ecf2; --maize: #FFCB05; --maize-soft: #fff6d6;
+    --good: #047857; --bad: #b91c1c;
+    --line: #dfe3e8; --warn-bg: #fef3c7; --warn-ink: #92400e;
+  }
+  * { box-sizing: border-box; }
+  html, body { max-width: 100%; overflow-x: hidden; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--ink); font-size: 14px; }
+  h1, h2, h3 { margin: 0 0 8px; }
+  h1 { font-size: 20px; } h2 { font-size: 16px; } h3 { font-size: 14px; }
+  .muted { color: var(--muted); }
+  .topbar { background: var(--accent); color: #fff; border-bottom: 3px solid var(--maize); padding: 10px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; position: sticky; top: 0; z-index: 5; }
+  .topbar .brand { font-weight: 700; color: var(--maize); }
+  .topbar .muted { color: #b9c6d4; }
+  .pill { background: var(--maize); color: var(--accent); border-radius: 999px; padding: 3px 12px; font-weight: 700; font-size: 13px; }
+  .spacer { flex: 1; }
+  .profit { font-weight: 700; font-size: 16px; color: #fff; }
+  .layout { display: grid; grid-template-columns: 400px minmax(0, 1fr); gap: 16px; padding: 16px 20px; max-width: 1280px; margin: 0 auto; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  .layout > *, #leftCol, #rightCol, .card, .modal, #segList { min-width: 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; }
+  label { display: block; font-weight: 600; margin: 8px 0 3px; font-size: 13px; }
+  input[type=text], input[type=number], select { width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; background: #fff; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .row2 > * { min-width: 0; }
+  .choice-fieldset { min-width: 0; margin: 8px 0 0; padding: 0; border: 0; }
+  .choice-fieldset legend { display: block; width: 100%; padding: 0; font-weight: 600; font-size: 13px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+  .chip { border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; cursor: pointer; user-select: none; font-size: 13px; font-weight: 400; background: #fff; }
+  .chip.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button { font-family: inherit; font-size: 14px; border-radius: 8px; border: 1px solid var(--line); background: #fff; padding: 8px 14px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.big { font-size: 16px; padding: 12px 22px; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  .seg-item { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .seg-item .name { font-weight: 600; overflow-wrap: anywhere; }
+  .seg-item .desc { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+  .seg-item .grow { flex: 1 1 190px; min-width: 0; }
+  .seg-count { font-weight: 600; white-space: nowrap; }
+  .linkbtn { border: none; background: none; color: var(--accent); cursor: pointer; padding: 2px 4px; font-size: 13px; }
+  .toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; white-space: nowrap; font-size: 13px; font-weight: 600; }
+  .warn { background: var(--warn-bg); color: var(--warn-ink); border-radius: 8px; padding: 8px 12px; margin: 8px 0; font-size: 13px; }
+  .hint { color: var(--muted); font-size: 12px; margin: 4px 0 0; }
+  .empty-warn { background: var(--warn-bg); color: var(--warn-ink); border-radius: 6px; padding: 6px 10px; font-size: 12px; margin: 6px 0 0; }
+  .table-scroll { width: 100%; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  table { border-collapse: collapse; width: 100%; min-width: 650px; font-size: 13px; }
+  th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 600; }
+  tr.total td { font-weight: 700; border-top: 2px solid var(--ink); }
+  .good { color: var(--good); } .bad { color: var(--bad); }
+  .overlay { position: fixed; inset: 0; background: rgba(31,36,48,0.55); display: flex; align-items: flex-start; justify-content: center; z-index: 50; overflow-y: auto; padding: 30px 16px; }
+  .modal { background: var(--card); border-radius: 12px; max-width: 720px; width: 100%; padding: 24px 28px; }
+  .statgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 10px 0; }
+  .stat { background: var(--bg); border-radius: 8px; padding: 8px 10px; }
+  .stat .v { font-weight: 700; font-size: 15px; }
+  .bar { height: 8px; background: var(--accent-soft); border-radius: 4px; overflow: hidden; margin-top: 3px; }
+  .bar > div { height: 100%; background: var(--accent); }
+  details { margin-bottom: 8px; }
+  summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+  .belief-opt { display: block; width: 100%; margin: 6px 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); text-align: left; cursor: pointer; }
+  .belief-opt.on { border-color: var(--accent); background: var(--maize-soft); }
+  .resultcard { background: var(--bg); border-radius: 8px; padding: 12px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .copy-status { flex-basis: 100%; min-height: 1.2em; font-size: 13px; }
+  .revealcurve { width: 100%; height: auto; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+  .tab { padding: 6px 12px; border-radius: 8px 8px 0 0; cursor: pointer; border: 1px solid var(--line); border-bottom: none; background: var(--bg); font-size: 13px; font-weight: 600; }
+  .tab.on { background: var(--card); }
+  @media (max-width: 480px) {
+    .layout { padding: 12px 10px; }
+    .card { padding: 12px; }
+    .modal { padding: 20px 16px; }
+    .overlay { padding: 16px 10px; }
+    .seg-item { align-items: flex-start; }
+    .seg-item .grow { flex-basis: 100%; }
+    .seg-count { margin-right: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div id="appShell">
+<div class="topbar">
+  <span class="brand" id="brandName">Lumière Ageless</span>
+  <span class="pill" id="roundPill">Year 1 of 4</span>
+  <span class="spacer"></span>
+  <span class="muted">Cumulative profit:</span>
+  <span class="profit" id="cumProfit">$0</span>
+</div>
+
+<div class="layout">
+  <div id="leftCol">
+    <div class="card" id="builderCard">
+      <h2>Define a segment</h2>
+      <p class="muted" style="margin:4px 0 0">Combine customer characteristics to create a segment. Leave a field blank to include all values.</p>
+      <label for="segName">Segment name</label>
+      <input type="text" id="segName" placeholder='e.g., "Affluent young professionals"' maxlength="40">
+      <label for="segGender">Gender</label>
+      <select id="segGender"><option value="any">Any</option><option value="F">Female</option><option value="M">Male</option></select>
+      <div class="row2">
+        <div><label for="segAgeMin">Age from</label><input type="number" id="segAgeMin" min="18" max="75" placeholder="18"></div>
+        <div><label for="segAgeMax">Age to</label><input type="number" id="segAgeMax" min="18" max="75" placeholder="75"></div>
+      </div>
+      <div class="row2">
+        <div><label for="segIncMin">Income from</label><input type="number" id="segIncMin" min="0" aria-describedby="incomeHint" placeholder="any"></div>
+        <div><label for="segIncMax">Income to</label><input type="number" id="segIncMax" min="0" aria-describedby="incomeHint" placeholder="any"></div>
+      </div>
+      <p class="hint" id="incomeHint"></p>
+      <fieldset class="choice-fieldset">
+        <legend>Region <span class="muted" style="font-weight:400">(leave unselected to include all)</span></legend>
+        <div class="chips" id="segRegions"></div>
+      </fieldset>
+      <fieldset class="choice-fieldset">
+        <legend>Education <span class="muted" style="font-weight:400">(leave unselected to include all)</span></legend>
+        <div class="chips" id="segEdus"></div>
+      </fieldset>
+      <p style="margin:10px 0 4px"><span class="muted">Matches:</span> <b id="livePreview">Not calculated</b></p>
+      <p class="empty-warn" id="emptyWarn" style="display:none"></p>
+      <div style="height:8px"></div>
+      <button class="primary" id="addSegBtn">Add segment</button>
+      <button id="clearFormBtn">Clear</button>
+    </div>
+
+    <div class="card">
+      <h2>Market overview</h2>
+      <p class="muted" style="margin:2px 0 8px">A summary of the market before you begin.</p>
+      <div id="popStats"></div>
+    </div>
+  </div>
+
+  <div id="rightCol">
+    <div class="card">
+      <h2>Your segments and advertising choices</h2>
+      <p class="muted" style="margin:2px 0 8px">People not included in one of your segments will be grouped under <b>Outside segment</b>. Choose which segments to advertise to, then run the year. Advertising costs $<span id="adCostLabel"></span> per person.</p>
+      <div id="exclusivityWarning"></div>
+      <div id="segList"></div>
+      <div style="margin-top:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap">
+        <button class="primary big" id="runYearBtn">Run Year 1 &raquo;</button>
+        <span class="muted" id="runHint"></span>
+      </div>
+    </div>
+
+    <div class="card" id="resultsCard" style="display:none">
+      <h2 id="resultsTitle">Results</h2>
+      <div id="resultsBody"></div>
+    </div>
+
+    <div class="card" id="historyCard" style="display:none">
+      <h2>History</h2>
+      <div id="historyBody"></div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- Intro overlay -->
+<div class="overlay" id="introOverlay" role="dialog" aria-modal="true" aria-labelledby="introTitle" aria-describedby="introStory">
+  <div class="modal" id="introModal" tabindex="-1">
+    <h1 id="introTitle"></h1>
+    <p id="introStory"></p>
+    <div class="card" style="background:var(--bg)">
+      <h3>Market overview</h3>
+      <div id="introStats"></div>
+    </div>
+    <h3 style="margin-top:16px">Before you start</h3>
+    <p class="muted" style="margin-top:2px">Which customers do you think will respond best to this product's advertising?</p>
+    <div id="beliefOptions" role="group" aria-label="Suggested hypotheses"></div>
+    <label for="beliefOther">Or type your own hypothesis</label>
+    <input type="text" id="beliefOther" placeholder="e.g., Young professionals">
+    <div style="margin-top:16px">
+      <button class="primary big" id="startBtn" disabled>Start Year 1</button>
+      <span class="muted" id="startHint">Select an option or enter your own.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Final overlay -->
+<div class="overlay" id="finalOverlay" role="dialog" aria-modal="true" aria-labelledby="finalTitle" aria-hidden="true" style="display:none">
+  <div class="modal" id="finalModal" tabindex="-1"></div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG: everything tunable lives here. Ask generative AI to
+   modify this block; game logic below reads only from CONFIG.
+   ============================================================ */
+/*CORE-EXTRACT-BEGIN*/
+const CONFIG = {
+  seed: 42,                 // fixed seed => same population for the whole class
+  populationSize: 10000,
+  rounds: 4,
+  adCostPerPerson: 5,       // $ per individual advertised to, per year
+  noiseSD: 0,               // 0 = fully deterministic (Justin's default).
+                            // Set to e.g. 2 to add per-year gaussian noise to
+                            // each individual's realized sales.
+  context: {
+    brand: "Lumière Ageless",
+    product: "wrinkle cream",
+    title: "Plan advertising for Lumière Ageless",
+    story: "Lumière Ageless is a national wrinkle cream brand. Over four years, you will define customer segments and decide which ones to advertise to. Advertising has a cost per person, and you will see the sales that follow. Your goal is to earn the highest total profit."
+  },
+  regions: ["Northeast", "Southeast", "Midwest", "Southwest", "Northwest"],
+  regionProbs: [0.20, 0.24, 0.22, 0.19, 0.15],
+  educations: ["High school", "College", "Postgraduate"],
+  eduProbs: [0.58, 0.32, 0.10],
+  femaleShare: 0.60,
+  ageMin: 18, ageMax: 75,
+  // ---- Hidden true model (students never see this in the UI) ----
+  // sales lift ($ extra sales per person IF advertised to):
+  //   peaks at age liftAgePeak, falls linearly to 0 over liftAgeWidth years
+  lift: {
+    female: 0.8,            // extra lift if female
+    beneficialRegions: ["Midwest", "Northeast"],
+    region: 0.8,            // extra lift if in a beneficial region
+    agePeakValue: 16,       // lift at exactly the peak age
+    agePeak: 30,
+    ageWidth: 10,           // lift falls to 0 by |age-peak| >= ageWidth
+    beneficialEdus: ["College", "Postgraduate"],
+    edu: 0.8,
+    incomePer100k: 2.0,     // lift per $100k income (capped)
+    incomeCap: 150          // $k cap for the income term
+  },
+  // base sales ($ per person per year, with or without ads):
+  base: {
+    intercept: 2,
+    female: 5,              // the trap: women buy plenty WITHOUT ads
+    beneficialRegions: ["Midwest", "Northeast"],
+    region: 0.9,
+    agePerYear: 0.12,       // older people buy more baseline (wrinkles!)
+    beneficialEdus: ["College", "Postgraduate"],
+    edu: 1.5,
+    incomePer100k: 4.0,
+    incomeCap: 150
+  },
+  beliefChoices: [
+    "Women overall",
+    "Women ages 25 to 45 with higher incomes",
+    "Adults age 55 and older",
+    "Everyone",
+    "Higher-income households across age groups"
+  ]
+};
+
+/* ============================================================
+   CORE: population generation, hidden model, and game math.
+   Pure functions; no DOM. (Kept separate so it can be tested.)
+   ============================================================ */
+
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function pickWeighted(rand, items, probs) {
+  const r = rand();
+  let acc = 0;
+  for (let i = 0; i < items.length; i++) { acc += probs[i]; if (r < acc) return items[i]; }
+  return items[items.length - 1];
+}
+
+function computeLift(ind, cfg) {
+  const L = cfg.lift;
+  let v = 0;
+  if (ind.gender === "F") v += L.female;
+  if (L.beneficialRegions.indexOf(ind.region) !== -1) v += L.region;
+  const d = Math.abs(ind.age - L.agePeak);
+  v += L.agePeakValue * Math.max(0, 1 - d / L.ageWidth);
+  if (L.beneficialEdus.indexOf(ind.education) !== -1) v += L.edu;
+  v += L.incomePer100k * Math.min(ind.income, L.incomeCap) / 100;
+  return v;
+}
+
+function computeBase(ind, cfg) {
+  const B = cfg.base;
+  let v = B.intercept;
+  if (ind.gender === "F") v += B.female;
+  if (B.beneficialRegions.indexOf(ind.region) !== -1) v += B.region;
+  v += B.agePerYear * ind.age;
+  if (B.beneficialEdus.indexOf(ind.education) !== -1) v += B.edu;
+  v += B.incomePer100k * Math.min(ind.income, B.incomeCap) / 100;
+  return v;
+}
+
+function genPopulation(cfg) {
+  const rand = mulberry32(cfg.seed);
+  const pop = [];
+  for (let i = 0; i < cfg.populationSize; i++) {
+    const gender = rand() < cfg.femaleShare ? "F" : "M";
+    const age = cfg.ageMin + Math.floor(rand() * (cfg.ageMax - cfg.ageMin + 1));
+    const education = pickWeighted(rand, cfg.educations, cfg.eduProbs);
+    const region = pickWeighted(rand, cfg.regions, cfg.regionProbs);
+    const eduMult = education === "High school" ? 0.85 : education === "College" ? 1.1 : 1.35;
+    const ageF = Math.min(1, (age - cfg.ageMin) / 30);
+    const income = Math.round((22 + 95 * rand() * rand()) * eduMult * (0.75 + 0.5 * ageF));
+    const ind = { gender, age, education, region, income };
+    ind.base = computeBase(ind, cfg);
+    ind.lift = computeLift(ind, cfg);
+    pop.push(ind);
+  }
+  return pop;
+}
+
+// Segment: { name, gender:'any'|'F'|'M', ageMin, ageMax, incMin, incMax, regions:[], edus:[] }
+// Empty regions/edus arrays mean "any". null age/income bounds mean unbounded.
+function matchesSegment(ind, seg) {
+  if (seg.gender !== "any" && ind.gender !== seg.gender) return false;
+  if (seg.ageMin != null && ind.age < seg.ageMin) return false;
+  if (seg.ageMax != null && ind.age > seg.ageMax) return false;
+  if (seg.incMin != null && ind.income < seg.incMin) return false;
+  if (seg.incMax != null && ind.income > seg.incMax) return false;
+  if (seg.regions.length && seg.regions.indexOf(ind.region) === -1) return false;
+  if (seg.edus.length && seg.edus.indexOf(ind.education) === -1) return false;
+  return true;
+}
+
+function segmentCount(pop, seg) {
+  let n = 0;
+  for (let i = 0; i < pop.length; i++) if (matchesSegment(pop[i], seg)) n++;
+  return n;
+}
+
+function validateSegmentBounds(seg, cfg) {
+  const ageBounds = [seg.ageMin, seg.ageMax].filter(function (v) { return v != null; });
+  const incomeBounds = [seg.incMin, seg.incMax].filter(function (v) { return v != null; });
+  if (ageBounds.some(function (v) { return !Number.isFinite(v); }))
+    return "Enter a valid minimum and maximum age.";
+  if (incomeBounds.some(function (v) { return !Number.isFinite(v); }))
+    return "Enter a valid minimum and maximum income.";
+  if (ageBounds.some(function (v) { return v < cfg.ageMin || v > cfg.ageMax; }))
+    return "Ages must be between " + cfg.ageMin + " and " + cfg.ageMax + ".";
+  if (incomeBounds.some(function (v) { return v < 0; }))
+    return "Income cannot be below zero.";
+  if (seg.ageMin != null && seg.ageMax != null && seg.ageMin > seg.ageMax)
+    return "Minimum age cannot be greater than maximum age.";
+  if (seg.incMin != null && seg.incMax != null && seg.incMin > seg.incMax)
+    return "Minimum income cannot be greater than maximum income.";
+  return null;
+}
+
+// Returns { assignment: Int-array (segment index per individual, -1 = outside),
+//           counts: [..per segment.., outsideCount],
+//           overlaps: total individuals matching >= 2 segments,
+//           overlapPairs: [{a,b,count}] }
+function assignSegments(pop, segs) {
+  const assignment = new Array(pop.length).fill(-1);
+  const counts = new Array(segs.length + 1).fill(0);
+  let overlaps = 0;
+  const pairCounts = {};
+  for (let i = 0; i < pop.length; i++) {
+    const matches = [];
+    for (let s = 0; s < segs.length; s++) if (matchesSegment(pop[i], segs[s])) matches.push(s);
+    if (matches.length === 0) { counts[segs.length]++; continue; }
+    if (matches.length === 1) { assignment[i] = matches[0]; counts[matches[0]]++; continue; }
+    overlaps++;
+    assignment[i] = matches[0];
+    counts[matches[0]]++;
+    for (let a = 0; a < matches.length; a++)
+      for (let b = a + 1; b < matches.length; b++) {
+        const key = matches[a] + "|" + matches[b];
+        pairCounts[key] = (pairCounts[key] || 0) + 1;
+      }
+  }
+  const overlapPairs = Object.keys(pairCounts).map(function (k) {
+    const p = k.split("|");
+    return { a: +p[0], b: +p[1], count: pairCounts[k] };
+  }).sort(function (x, y) { return y.count - x.count; });
+  return { assignment: assignment, counts: counts, overlaps: overlaps, overlapPairs: overlapPairs };
+}
+
+// Assignment counts are valid accounting only once segments are exclusive.
+// While the builder is showing an invalid overlap, report each segment's true
+// raw match count so a later segment is not misleadingly shown as empty.
+function segmentDisplayCounts(pop, segs, assignmentResult) {
+  if (assignmentResult.overlaps > 0)
+    return segs.map(function (seg) { return segmentCount(pop, seg); });
+  return assignmentResult.counts.slice(0, segs.length);
+}
+
+function makeRoundNoise(cfg, roundIndex) {
+  if (!cfg || !(cfg.noiseSD > 0) || roundIndex == null) return null;
+  const nrand = mulberry32(cfg.seed + 1000 + roundIndex);
+  return function () {
+    const u1 = Math.max(nrand(), 1e-12), u2 = nrand();
+    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2) * cfg.noiseSD;
+  };
+}
+
+// targeted: boolean array of length segs.length + 1 (last entry = outside segment)
+// Returns per-segment results + round totals. Students see sales, never lift.
+function runYear(pop, segs, targeted, cfg, roundIndex) {
+  const asg = assignSegments(pop, segs);
+  if (asg.overlaps > 0) throw new Error("Adjust the overlapping segments before running the year.");
+  const K = segs.length + 1;
+  const res = [];
+  for (let s = 0; s < K; s++) res.push({ count: asg.counts[s], sales: 0, adCost: 0, advertised: !!targeted[s] });
+  const noise = makeRoundNoise(cfg, roundIndex);
+  for (let i = 0; i < pop.length; i++) {
+    const s = asg.assignment[i] === -1 ? K - 1 : asg.assignment[i];
+    const adv = !!targeted[s];
+    let sales = pop[i].base + (adv ? pop[i].lift : 0);
+    if (noise) sales += noise();
+    if (sales < 0) sales = 0;
+    res[s].sales += sales;
+    if (adv) res[s].adCost += cfg.adCostPerPerson;
+  }
+  let totalSales = 0, totalAdCost = 0;
+  for (let s = 0; s < K; s++) {
+    res[s].salesPerPerson = res[s].count > 0 ? res[s].sales / res[s].count : 0;
+    res[s].profit = res[s].sales - res[s].adCost;
+    totalSales += res[s].sales; totalAdCost += res[s].adCost;
+  }
+  return { segments: res, totalSales: totalSales, totalAdCost: totalAdCost, profit: totalSales - totalAdCost };
+}
+
+// Best achievable profit per round: advertise individual i iff lift_i > cost.
+function oracleRoundProfit(pop, cfg, roundIndex) {
+  let p = 0;
+  const noise = makeRoundNoise(cfg, roundIndex);
+  for (let i = 0; i < pop.length; i++) {
+    const adv = pop[i].lift > cfg.adCostPerPerson;
+    let sales = pop[i].base + (adv ? pop[i].lift : 0);
+    if (noise) sales += noise();
+    if (sales < 0) sales = 0;
+    p += sales - (adv ? cfg.adCostPerPerson : 0);
+  }
+  return p;
+}
+
+function noAdsRoundProfit(pop, cfg, roundIndex) {
+  let p = 0;
+  const noise = makeRoundNoise(cfg, roundIndex);
+  for (let i = 0; i < pop.length; i++) {
+    let sales = pop[i].base;
+    if (noise) sales += noise();
+    if (sales < 0) sales = 0;
+    p += sales;
+  }
+  return p;
+}
+
+function noAdsTotalProfit(pop, cfg) {
+  let p = 0;
+  for (let round = 1; round <= cfg.rounds; round++) p += noAdsRoundProfit(pop, cfg, round);
+  return p;
+}
+
+function oracleTotalProfit(pop, cfg) {
+  let p = 0;
+  for (let round = 1; round <= cfg.rounds; round++) p += oracleRoundProfit(pop, cfg, round);
+  return p;
+}
+/*CORE-EXTRACT-END*/
+
+/* ============================================================
+   UI: everything below is presentation and game flow.
+   ============================================================ */
+(function () {
+  const $ = function (id) { return document.getElementById(id); };
+  const fmt$ = function (v) { return (v < 0 ? "-$" : "$") + Math.abs(Math.round(v)).toLocaleString("en-US"); };
+  const fmt$2 = function (v) { return (v < 0 ? "-$" : "$") + Math.abs(v).toFixed(2); };
+
+  const pop = genPopulation(CONFIG);
+  const incLo = Math.min.apply(null, pop.map(function (p) { return p.income; }));
+  const incHi = Math.max.apply(null, pop.map(function (p) { return p.income; }));
+  const state = {
+    round: 1,
+    segments: [],
+    targeted: [],       // parallel to segments, plus outside handled separately
+    outsideTargeted: false,
+    history: [],
+    cumProfit: 0,
+    belief: null,
+    editingIndex: -1,
+    finished: false,
+    running: false
+  };
+  let activeDialog = null;
+  let dialogReturnFocus = null;
+  let bodyOverflowBeforeDialog = "";
+  const focusableSelector = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
+
+  function dialogFocusables(overlay) {
+    return Array.prototype.slice.call(overlay.querySelectorAll(focusableSelector)).filter(function (el) {
+      return el.tabIndex >= 0 && el.getAttribute("aria-hidden") !== "true";
+    });
+  }
+
+  function trapDialogTab(event) {
+    if (event.key !== "Tab") return;
+    const overlay = event.currentTarget;
+    if (activeDialog !== overlay) return;
+    const focusables = dialogFocusables(overlay);
+    if (!focusables.length) {
+      event.preventDefault();
+      overlay.querySelector(".modal").focus();
+      return;
+    }
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const activeIndex = focusables.indexOf(document.activeElement);
+    if (event.shiftKey && (document.activeElement === first || activeIndex === -1)) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || activeIndex === -1)) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  function setAppInert(inert) {
+    const shell = $("appShell");
+    shell.inert = inert;
+    if (inert) shell.setAttribute("inert", "");
+    else shell.removeAttribute("inert");
+  }
+
+  function openDialog(overlay, initialFocus, returnFocus) {
+    const currentFocus = document.activeElement;
+    activeDialog = overlay;
+    dialogReturnFocus = returnFocus || (currentFocus && currentFocus !== document.body ? currentFocus : null);
+    bodyOverflowBeforeDialog = document.body.style.overflow;
+    overlay.style.display = "flex";
+    overlay.removeAttribute("aria-hidden");
+    setAppInert(true);
+    document.body.style.overflow = "hidden";
+    requestAnimationFrame(function () {
+      const focusables = dialogFocusables(overlay);
+      const target = initialFocus && !initialFocus.disabled ? initialFocus : (focusables[0] || overlay.querySelector(".modal"));
+      target.focus();
+    });
+  }
+
+  function closeDialog(overlay, restoreFocus) {
+    overlay.style.display = "none";
+    overlay.setAttribute("aria-hidden", "true");
+    activeDialog = null;
+    setAppInert(false);
+    document.body.style.overflow = bodyOverflowBeforeDialog;
+    const target = restoreFocus || dialogReturnFocus;
+    dialogReturnFocus = null;
+    if (target && document.contains(target) && typeof target.focus === "function") target.focus();
+  }
+
+  /* ---------- population stats ---------- */
+  function popSummaryHTML() {
+    const n = pop.length;
+    let f = 0, collegePlus = 0, incSum = 0;
+    const ages = [];
+    const regionCounts = {};
+    CONFIG.regions.forEach(function (r) { regionCounts[r] = 0; });
+    pop.forEach(function (p) {
+      if (p.gender === "F") f++;
+      if (p.education !== "High school") collegePlus++;
+      incSum += p.income;
+      ages.push(p.age);
+      regionCounts[p.region]++;
+    });
+    ages.sort(function (a, b) { return a - b; });
+    const medAge = ages[Math.floor(n / 2)];
+    let html = '<div class="statgrid">';
+    html += stat("Population", n.toLocaleString("en-US"));
+    html += stat("Women", Math.round(100 * f / n) + "%", f / n);
+    html += stat("College or higher", Math.round(100 * collegePlus / n) + "%", collegePlus / n);
+    html += stat("Median age", medAge);
+    html += stat("Average income", "$" + Math.round(incSum / n) + "k");
+    html += "</div>";
+    html += '<p class="muted" style="margin:6px 0 2px">By region:</p><div class="statgrid">';
+    CONFIG.regions.forEach(function (r) {
+      html += stat(r, Math.round(100 * regionCounts[r] / n) + "%", regionCounts[r] / n);
+    });
+    html += "</div>";
+    return html;
+  }
+  function stat(label, value, frac) {
+    return '<div class="stat"><div class="muted">' + label + '</div><div class="v">' + value + "</div>" +
+      (frac != null ? '<div class="bar"><div style="width:' + Math.round(frac * 100) + '%"></div></div>' : "") + "</div>";
+  }
+
+  /* ---------- segment form ---------- */
+  function setPressedButton(button, pressed) {
+    button.classList.toggle("on", pressed);
+    button.setAttribute("aria-pressed", pressed ? "true" : "false");
+  }
+
+  function buildChips(containerId, values) {
+    const el = $(containerId);
+    el.innerHTML = "";
+    values.forEach(function (v) {
+      const c = document.createElement("button");
+      c.type = "button";
+      c.className = "chip"; c.textContent = v; c.dataset.value = v;
+      c.setAttribute("aria-pressed", "false");
+      c.onclick = function () {
+        setPressedButton(c, !c.classList.contains("on"));
+        updatePreview();
+      };
+      el.appendChild(c);
+    });
+  }
+  function chipValues(containerId) {
+    return Array.prototype.slice.call($(containerId).querySelectorAll(".chip.on")).map(function (c) { return c.dataset.value; });
+  }
+  function readForm() {
+    const num = function (id) { const v = $(id).value.trim(); return v === "" ? null : +v; };
+    // Income is stored in $thousands. Accept either unit: anyone typing 50000
+    // means $50k, so values >= 1000 are treated as raw dollars and converted.
+    const inc = function (id) { const v = num(id); return v == null ? null : (v >= 1000 ? Math.round(v / 1000) : v); };
+    return {
+      name: $("segName").value.trim(),
+      gender: $("segGender").value,
+      ageMin: num("segAgeMin"), ageMax: num("segAgeMax"),
+      incMin: inc("segIncMin"), incMax: inc("segIncMax"),
+      regions: chipValues("segRegions"), edus: chipValues("segEdus")
+    };
+  }
+  function clearForm() {
+    ["segName", "segAgeMin", "segAgeMax", "segIncMin", "segIncMax"].forEach(function (id) { $(id).value = ""; });
+    $("segGender").value = "any";
+    document.querySelectorAll("#segRegions .chip, #segEdus .chip").forEach(function (c) { setPressedButton(c, false); });
+    state.editingIndex = -1;
+    $("addSegBtn").textContent = "Add segment";
+    updatePreview();
+  }
+  function updatePreview() {
+    const seg = readForm();
+    const n = segmentCount(pop, seg);
+    $("livePreview").textContent = n.toLocaleString("en-US") + " people (" + Math.round(1000 * n / pop.length) / 10 + "% of population)";
+    const warnEl = $("emptyWarn");
+    if (n === 0) {
+      warnEl.style.display = "";
+      warnEl.innerHTML = "<b>No one matches these criteria.</b> " + whyEmpty(seg);
+    } else { warnEl.style.display = "none"; }
+  }
+
+  // Diagnose which single criterion is emptying the segment, so the user isn't
+  // left guessing. Tests each filter alone against the population.
+  function whyEmpty(seg) {
+    const blank = { gender: "any", ageMin: null, ageMax: null, incMin: null, incMax: null, regions: [], edus: [] };
+    const solo = function (o) { return segmentCount(pop, Object.assign({}, blank, o)); };
+    const culprits = [];
+    if (seg.incMin != null || seg.incMax != null) {
+      if (solo({ incMin: seg.incMin, incMax: seg.incMax }) === 0)
+        culprits.push("the income range (this population earns $" + incLo + "k–$" + incHi + "k per year)");
+    }
+    if ((seg.ageMin != null || seg.ageMax != null) && solo({ ageMin: seg.ageMin, ageMax: seg.ageMax }) === 0)
+      culprits.push("the age range (ages run " + CONFIG.ageMin + "–" + CONFIG.ageMax + ")");
+    if (culprits.length) return "Likely cause: " + culprits.join(" and ") + ".";
+    return "The combined criteria do not match anyone. Try removing or widening a filter.";
+  }
+  function describeSeg(seg) {
+    const parts = [];
+    if (seg.gender !== "any") parts.push(seg.gender === "F" ? "female" : "male");
+    if (seg.ageMin != null || seg.ageMax != null) parts.push("age " + (seg.ageMin != null ? seg.ageMin : "…") + "–" + (seg.ageMax != null ? seg.ageMax : "…"));
+    if (seg.incMin != null || seg.incMax != null) parts.push("income " + (seg.incMin != null ? "$" + seg.incMin + "k" : "…") + "–" + (seg.incMax != null ? "$" + seg.incMax + "k" : "…"));
+    if (seg.regions.length) parts.push(seg.regions.join("/"));
+    if (seg.edus.length) parts.push(seg.edus.join("/"));
+    return parts.length ? parts.join(" · ") : "everyone";
+  }
+
+  function addOrUpdateSegment() {
+    const seg = readForm();
+    if (!seg.name) { seg.name = "Segment " + (state.segments.length + 1); }
+    const boundsError = validateSegmentBounds(seg, CONFIG);
+    if (boundsError) { alert(boundsError); return; }
+    if (segmentCount(pop, seg) === 0) {
+      alert("This segment does not match anyone.\n\n" + whyEmpty(seg).replace(/<[^>]+>/g, ""));
+      return;
+    }
+    // Names label rows in the results table and history, so keep them unique.
+    var taken = state.segments.filter(function (s, idx) { return idx !== state.editingIndex; })
+      .map(function (s) { return s.name.toLowerCase(); });
+    if (taken.indexOf(seg.name.toLowerCase()) !== -1) {
+      var base = seg.name, k = 2;
+      while (taken.indexOf((base + " " + k).toLowerCase()) !== -1) k++;
+      seg.name = base + " " + k;
+    }
+    if (state.editingIndex >= 0) {
+      state.segments[state.editingIndex] = seg;
+    } else {
+      state.segments.push(seg);
+      state.targeted.push(false);
+    }
+    clearForm();
+    renderSegments();
+  }
+
+  /* ---------- segment list & targeting ---------- */
+  function renderSegments() {
+    const el = $("segList");
+    el.innerHTML = "";
+    const asg = state.segments.length ? assignSegments(pop, state.segments) : { counts: [pop.length], overlaps: 0, overlapPairs: [] };
+    const displayCounts = segmentDisplayCounts(pop, state.segments, asg);
+    state.segments.forEach(function (seg, i) {
+      const div = document.createElement("div");
+      div.className = "seg-item";
+      div.innerHTML =
+        '<div class="grow"><div class="name">' + escapeHTML(seg.name) + '</div><div class="desc">' + escapeHTML(describeSeg(seg)) + "</div></div>" +
+        '<span class="seg-count">' + displayCounts[i].toLocaleString("en-US") + " people</span>" +
+        '<label class="toggle"><input type="checkbox" data-i="' + i + '" class="advToggle"' + (state.targeted[i] ? " checked" : "") + "> Advertise</label>" +
+        '<button class="linkbtn" data-i="' + i + '" data-act="edit">Edit</button>' +
+        '<button class="linkbtn" data-i="' + i + '" data-act="del">Remove</button>';
+      el.appendChild(div);
+    });
+    // outside segment row
+    const outsideCount = state.segments.length ? asg.counts[state.segments.length] : pop.length;
+    const od = document.createElement("div");
+    od.className = "seg-item";
+    od.style.background = "var(--bg)";
+    od.innerHTML =
+      '<div class="grow"><div class="name">Outside segment</div><div class="desc">' +
+        (outsideCount === 0 ? "Your segments cover the full market" : "people not included in your segments") + "</div></div>" +
+      '<span class="seg-count">' + outsideCount.toLocaleString("en-US") + " people</span>" +
+      (outsideCount === 0 ? '<span class="muted" style="font-size:13px">No one is in this group</span>'
+        : '<label class="toggle"><input type="checkbox" id="outsideToggle"' + (state.outsideTargeted ? " checked" : "") + "> Advertise</label>");
+    el.appendChild(od);
+    if (outsideCount === 0) state.outsideTargeted = false;
+
+    // exclusivity warning
+    const w = $("exclusivityWarning");
+    if (asg.overlaps > 0) {
+      let msg = "<b>Segments overlap.</b> " + asg.overlaps.toLocaleString("en-US") + " people meet more than one segment's criteria. Adjust the segment definitions before running the year.";
+      if (asg.overlapPairs.length) {
+        const p = asg.overlapPairs[0];
+        msg += ' Largest overlap: "' + escapeHTML(state.segments[p.a].name) + '" and "' + escapeHTML(state.segments[p.b].name) + '" (' + p.count.toLocaleString("en-US") + " people).";
+      }
+      w.innerHTML = '<div class="warn">' + msg + "</div>";
+    } else { w.innerHTML = ""; }
+
+    const canRun = state.segments.length >= 1 && asg.overlaps === 0 && !state.finished && !state.running;
+    $("runYearBtn").disabled = !canRun;
+    if (state.finished) {
+      $("runHint").innerHTML = 'All four years are complete. <button class="linkbtn" id="reopenFinal">View results</button>';
+      const rf = $("reopenFinal");
+      if (rf) rf.onclick = function () { openDialog($("finalOverlay"), $("finalModal"), rf); };
+    } else {
+      $("runHint").textContent =
+        state.segments.length === 0 ? "Add at least one segment to continue." :
+        asg.overlaps > 0 ? "Adjust the overlapping segments to continue." : "";
+    }
+
+    // wire events
+    el.querySelectorAll(".advToggle").forEach(function (t) {
+      t.onchange = function () { state.targeted[+t.dataset.i] = t.checked; };
+    });
+    const ot = $("outsideToggle");
+    if (ot) ot.onchange = function () { state.outsideTargeted = ot.checked; };
+    el.querySelectorAll(".linkbtn").forEach(function (b) {
+      b.onclick = function () {
+        const i = +b.dataset.i;
+        if (b.dataset.act === "del") {
+          state.segments.splice(i, 1); state.targeted.splice(i, 1);
+          if (state.editingIndex === i) clearForm();
+          else if (state.editingIndex > i) state.editingIndex--;
+          renderSegments();
+        } else {
+          const seg = state.segments[i];
+          $("segName").value = seg.name;
+          $("segGender").value = seg.gender;
+          $("segAgeMin").value = seg.ageMin != null ? seg.ageMin : "";
+          $("segAgeMax").value = seg.ageMax != null ? seg.ageMax : "";
+          $("segIncMin").value = seg.incMin != null ? seg.incMin : "";
+          $("segIncMax").value = seg.incMax != null ? seg.incMax : "";
+          document.querySelectorAll("#segRegions .chip").forEach(function (c) { setPressedButton(c, seg.regions.indexOf(c.dataset.value) !== -1); });
+          document.querySelectorAll("#segEdus .chip").forEach(function (c) { setPressedButton(c, seg.edus.indexOf(c.dataset.value) !== -1); });
+          state.editingIndex = i;
+          $("addSegBtn").textContent = "Update segment";
+          updatePreview();
+          $("segName").focus();
+        }
+      };
+    });
+  }
+
+  function escapeHTML(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  /* ---------- run year ---------- */
+  function doRunYear() {
+    if (state.running || state.finished) return;
+    state.running = true;
+    $("runYearBtn").disabled = true;
+    const targeted = state.targeted.concat([state.outsideTargeted]);
+    let result;
+    try { result = runYear(pop, state.segments, targeted, CONFIG, state.round); }
+    catch (e) {
+      state.running = false;
+      renderSegments();
+      alert(e.message);
+      return;
+    }
+    state.cumProfit += result.profit;
+    state.history.push({
+      round: state.round,
+      segments: state.segments.map(function (s, i) { return { name: s.name, desc: describeSeg(s), advertised: targeted[i] }; }),
+      outsideAdvertised: state.outsideTargeted,
+      result: result
+    });
+    renderResults(result);
+    renderHistory();
+    $("cumProfit").textContent = fmt$(state.cumProfit);
+
+    if (state.round >= CONFIG.rounds) {
+      state.finished = true;
+      renderSegments();
+      setTimeout(showFinal, 400);
+    } else {
+      state.round++;
+      $("roundPill").textContent = "Year " + state.round + " of " + CONFIG.rounds;
+      $("runYearBtn").innerHTML = "Run Year " + state.round + " &raquo;";
+      renderSegments();
+    }
+    // Keep the irreversible action locked through the browser's double-click
+    // window so one rapid activation cannot consume two years.
+    setTimeout(function () {
+      state.running = false;
+      if (!state.finished) renderSegments();
+    }, 500);
+  }
+
+  function resultsTableHTML(entry) {
+    const r = entry.result;
+    let html = '<div class="table-scroll" role="region" aria-label="Year ' + entry.round + ' results table" tabindex="0">' +
+      "<table><tr><th>Segment</th><th>People</th><th>Advertised</th><th>Sales</th><th>Sales per person</th><th>Advertising cost</th><th>Profit</th></tr>";
+    const names = entry.segments.map(function (s) { return s.name; }).concat(["Outside segment"]);
+    const advs = entry.segments.map(function (s) { return s.advertised; }).concat([entry.outsideAdvertised]);
+    r.segments.forEach(function (s, i) {
+      if (s.count === 0) return; // don't render an empty Outside segment as a filler row
+      html += "<tr><td>" + escapeHTML(names[i]) + "</td><td>" + s.count.toLocaleString("en-US") + "</td><td>" + (advs[i] ? "Yes" : "No") + "</td><td>" + fmt$(s.sales) + "</td><td>" + fmt$2(s.salesPerPerson) + "</td><td>" + fmt$(s.adCost) + '</td><td class="' + (s.profit >= 0 ? "good" : "bad") + '">' + fmt$(s.profit) + "</td></tr>";
+    });
+    html += '<tr class="total"><td>Year total</td><td>' + pop.length.toLocaleString("en-US") + "</td><td></td><td>" + fmt$(r.totalSales) + "</td><td></td><td>" + fmt$(r.totalAdCost) + '</td><td class="' + (r.profit >= 0 ? "good" : "bad") + '">' + fmt$(r.profit) + "</td></tr></table></div>";
+    return html;
+  }
+
+  function renderResults(result) {
+    const entry = state.history[state.history.length - 1];
+    $("resultsCard").style.display = "";
+    $("resultsTitle").textContent = "Year " + entry.round + " results";
+    $("resultsBody").innerHTML = resultsTableHTML(entry) +
+      '<p class="muted" style="margin-top:8px">You can see sales, but not what these customers would have purchased without advertising. Compare segments and years carefully.</p>';
+    $("resultsCard").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function renderHistory() {
+    if (state.history.length < 2) return;
+    $("historyCard").style.display = "";
+    const el = $("historyBody");
+    el.innerHTML = "";
+    state.history.slice(0, -1).slice().reverse().forEach(function (entry) {
+      const d = document.createElement("details");
+      d.innerHTML = "<summary>Year " + entry.round + " | Profit " + fmt$(entry.result.profit) + "</summary>" + resultsTableHTML(entry);
+      el.appendChild(d);
+    });
+  }
+
+  /* ---------- intro ---------- */
+  function initIntro() {
+    $("introTitle").textContent = CONFIG.context.title;
+    $("introStory").textContent = CONFIG.context.story;
+    $("brandName").textContent = CONFIG.context.brand;
+    $("introStats").innerHTML = popSummaryHTML();
+    $("popStats").innerHTML = popSummaryHTML();
+    $("adCostLabel").textContent = CONFIG.adCostPerPerson;
+    const bo = $("beliefOptions");
+    CONFIG.beliefChoices.forEach(function (choice) {
+      const d = document.createElement("button");
+      d.type = "button";
+      d.className = "belief-opt"; d.textContent = choice;
+      d.setAttribute("aria-pressed", "false");
+      d.onclick = function () {
+        document.querySelectorAll(".belief-opt").forEach(function (x) { setPressedButton(x, false); });
+        setPressedButton(d, true);
+        $("beliefOther").value = "";
+        state.belief = choice;
+        $("startBtn").disabled = false;
+        $("startHint").textContent = "";
+      };
+      bo.appendChild(d);
+    });
+    $("beliefOther").addEventListener("input", function () {
+      const customBelief = $("beliefOther").value.trim();
+      if (customBelief) {
+        document.querySelectorAll(".belief-opt").forEach(function (x) { setPressedButton(x, false); });
+        state.belief = customBelief;
+        $("startBtn").disabled = false;
+        $("startHint").textContent = "";
+      } else {
+        const selectedPreset = document.querySelector(".belief-opt.on");
+        state.belief = selectedPreset ? selectedPreset.textContent : null;
+        $("startBtn").disabled = !selectedPreset;
+        $("startHint").textContent = selectedPreset ? "" : "Select an option or enter your own.";
+      }
+    });
+    $("startBtn").onclick = function () {
+      const customBelief = $("beliefOther").value.trim();
+      const selectedPreset = document.querySelector(".belief-opt.on");
+      if (customBelief) state.belief = customBelief;
+      else if (selectedPreset) state.belief = selectedPreset.textContent;
+      else {
+        state.belief = null;
+        $("startBtn").disabled = true;
+        $("startHint").textContent = "Select an option or enter your own.";
+        return;
+      }
+      closeDialog($("introOverlay"), $("segName"));
+    };
+  }
+
+  /* ---------- final screen ---------- */
+  function resultCardText() {
+    const lines = [];
+    lines.push("SEGMENTATION AND TARGETING RESULTS");
+    lines.push("Brand: " + CONFIG.context.brand + " (" + CONFIG.context.product + ")");
+    lines.push("Starting hypothesis: " + (state.belief || "Not provided"));
+    lines.push("Total profit (" + CONFIG.rounds + " years): " + fmt$(state.cumProfit));
+    lines.push("Difference from no advertising: " + fmt$(state.cumProfit - noAdsTotalProfit(pop, CONFIG)));
+    state.history.forEach(function (h) {
+      const advSegs = h.segments.filter(function (s) { return s.advertised; }).map(function (s) { return s.name; });
+      if (h.outsideAdvertised) advSegs.push("Outside");
+      lines.push("Year " + h.round + ": profit " + fmt$(h.result.profit) + " | advertised to: " + (advSegs.length ? advSegs.join(", ") : "none"));
+    });
+    const last = state.history[state.history.length - 1];
+    lines.push("Final segments: " + last.segments.map(function (s) { return s.name + " (" + s.desc + ")"; }).join("; "));
+    return lines.join("\n");
+  }
+
+  function fallbackCopyText(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    let copied = false;
+    try {
+      ta.focus();
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+      copied = !!(document.execCommand && document.execCommand("copy"));
+    } catch (e) {
+      copied = false;
+    } finally {
+      document.body.removeChild(ta);
+    }
+    return copied;
+  }
+
+  function reportCopyResult(copied) {
+    const button = $("copyCardBtn");
+    const status = $("copyStatus");
+    if (copied) {
+      button.textContent = "Copied ✔︎";
+      status.className = "copy-status good";
+      status.textContent = "Summary copied to the clipboard.";
+    } else {
+      button.textContent = "Copy summary";
+      status.className = "copy-status bad";
+      status.textContent = "Couldn’t copy automatically. Select the summary text and copy it manually.";
+    }
+  }
+
+  function showFinal() {
+    const noAds = noAdsTotalProfit(pop, CONFIG);
+    const delta = state.cumProfit - noAds;
+    let html = '<h1 id="finalTitle">Results after ' + CONFIG.rounds + " years</h1>";
+    html += '<div class="statgrid">' +
+      stat("Your total profit", fmt$(state.cumProfit)) +
+      stat("No-advertising benchmark", fmt$(noAds)) +
+      stat(delta >= 0 ? "Above the benchmark" : "Below the benchmark", fmt$(Math.abs(delta))) +
+      "</div>";
+    html += "<h3>Starting hypothesis</h3><p>" + escapeHTML(state.belief || "Not provided") + "</p>";
+    html += CONFIG.noiseSD > 0
+      ? '<p class="muted">A higher sales result does not by itself show that advertising caused the difference. Customers in that segment may have been more likely to buy already. Comparing the same segment across years can help, but annual variation makes that comparison uncertain. A randomized A/B test gives a clearer estimate.</p>'
+      : '<p class="muted">A higher sales result does not by itself show that advertising caused the difference. Customers in that segment may have been more likely to buy already. In this fixed market, you can compare the same segment with and without advertising across years to calculate its modeled lift. In real markets, randomized A/B tests provide a more reliable comparison.</p>';
+    html += "<h3>Shareable summary</h3><div class='resultcard' id='cardText'>" + escapeHTML(resultCardText()) + "</div>";
+    html += '<div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap">' +
+      '<button class="primary" id="copyCardBtn">Copy summary</button>' +
+      '<button id="closeFinalBtn">Review decisions</button>' +
+      '<button id="replayBtn">Play again</button>' +
+      '<button class="linkbtn" id="revealBtn" style="margin-left:auto">Show instructor debrief</button>' +
+      '<span class="copy-status" id="copyStatus" role="status" aria-live="polite"></span></div>';
+    html += '<div id="revealPanel"></div>';
+    $("finalModal").innerHTML = html;
+    $("closeFinalBtn").onclick = function () {
+      renderSegments();
+      closeDialog($("finalOverlay"), $("reopenFinal") || $("segName"));
+    };
+    $("copyCardBtn").onclick = function () {
+      const txt = resultCardText();
+      const useFallback = function () { reportCopyResult(fallbackCopyText(txt)); };
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).then(function () { reportCopyResult(true); }, useFallback);
+        } else {
+          useFallback();
+        }
+      } catch (e) {
+        useFallback();
+      }
+    };
+    $("replayBtn").onclick = function () { location.reload(); };
+    $("revealBtn").onclick = function () {
+      if (confirm("This shows the assumptions and response model used in the simulation. Continue?")) renderReveal();
+    };
+    openDialog($("finalOverlay"), $("finalModal"), $("reopenFinal"));
+  }
+
+  function renderReveal() {
+    const cost = CONFIG.adCostPerPerson;
+    let profitable = 0, liftSumF = 0, nF = 0, liftSumM = 0, nM = 0;
+    const buckets = [[18, 24], [25, 34], [35, 44], [45, 54], [55, 64], [65, 75]];
+    const bLift = buckets.map(function () { return { sum: 0, n: 0 }; });
+    const bBase = buckets.map(function () { return { sum: 0, n: 0 }; });
+    pop.forEach(function (p) {
+      if (p.lift > cost) profitable++;
+      if (p.gender === "F") { liftSumF += p.lift; nF++; } else { liftSumM += p.lift; nM++; }
+      for (let b = 0; b < buckets.length; b++) {
+        if (p.age >= buckets[b][0] && p.age <= buckets[b][1]) { bLift[b].sum += p.lift; bLift[b].n++; bBase[b].sum += p.base; bBase[b].n++; break; }
+      }
+    });
+    const oracle = oracleTotalProfit(pop, CONFIG);
+    const noAds = noAdsTotalProfit(pop, CONFIG);
+
+    // SVG: avg lift by age bucket vs cost line; base sales overlaid
+    const W = 620, H = 220, padL = 40, padB = 30, padT = 16;
+    const maxY = Math.max.apply(null, bLift.map(function (b) { return b.n ? b.sum / b.n : 0; }).concat(bBase.map(function (b) { return b.n ? b.sum / b.n : 0; }), [cost])) * 1.15;
+    const x = function (i) { return padL + i * (W - padL - 10) / buckets.length + 8; };
+    const bw = (W - padL - 10) / buckets.length - 16;
+    const y = function (v) { return H - padB - (v / maxY) * (H - padB - padT); };
+    let svg = '<svg class="revealcurve" viewBox="0 0 ' + W + " " + H + '" xmlns="http://www.w3.org/2000/svg">';
+    for (let i = 0; i < buckets.length; i++) {
+      const lv = bLift[i].n ? bLift[i].sum / bLift[i].n : 0;
+      const bv = bBase[i].n ? bBase[i].sum / bBase[i].n : 0;
+      svg += '<rect x="' + x(i) + '" y="' + y(lv) + '" width="' + bw / 2 + '" height="' + (y(0) - y(lv)) + '" fill="#00274C"></rect>';
+      svg += '<rect x="' + (x(i) + bw / 2 + 2) + '" y="' + y(bv) + '" width="' + bw / 2 + '" height="' + (y(0) - y(bv)) + '" fill="#FFCB05"></rect>';
+      svg += '<text x="' + (x(i) + bw / 2) + '" y="' + (H - 12) + '" font-size="10" text-anchor="middle" fill="#6b7280">' + buckets[i][0] + "–" + buckets[i][1] + "</text>";
+    }
+    svg += '<line x1="' + padL + '" y1="' + y(cost) + '" x2="' + (W - 10) + '" y2="' + y(cost) + '" stroke="#b91c1c" stroke-dasharray="4 3"></line>';
+    svg += '<text x="' + (W - 12) + '" y="' + (y(cost) - 5) + '" font-size="10" text-anchor="end" fill="#b91c1c">ad cost $' + cost + "/person</text>";
+    svg += '<text x="' + padL + '" y="' + (padT - 4) + '" font-size="10" fill="#6b7280">$ per person per year</text>';
+    svg += "</svg>";
+    svg += '<p class="muted" style="font-size:12px;margin:2px 0 0"><span style="color:#00274C">■</span> Average ad lift &nbsp; <span style="color:#FFCB05">■</span> Average base sales, by age group</p>';
+
+    let html = "<hr style='margin:18px 0'><h2>Instructor debrief</h2>";
+    html += "<p>The simulation assigns each customer <b>base sales</b>, which they generate without advertising, and <b>ad lift</b>, which is the additional sales generated by advertising. Advertising is profitable for a customer when lift is greater than the $" + cost + " cost.</p>";
+    html += svg;
+    html += '<div class="statgrid" style="margin-top:12px">' +
+      stat("Customers with lift above cost", Math.round(100 * profitable / pop.length) + "%", profitable / pop.length) +
+      stat("Average lift for women", fmt$2(liftSumF / nF)) +
+      stat("Average lift for men", fmt$2(liftSumM / nM)) +
+      stat("Individual-level benchmark", fmt$(oracle)) +
+      stat("Your score", fmt$(state.cumProfit)) +
+      stat("No-advertising benchmark", fmt$(noAds)) +
+      "</div>";
+    html += "<p class='muted'>Women have higher base sales in this model, so an advertised group of women can have strong sales even when much of that demand would have occurred without advertising. The customers with the highest modeled response are generally ages " + (CONFIG.lift.agePeak - CONFIG.lift.ageWidth + 4) + "–" + (CONFIG.lift.agePeak + CONFIG.lift.ageWidth - 4) + ", with higher incomes, college education, and residence in the " + CONFIG.lift.beneficialRegions.join(" or ") + ". " +
+      (CONFIG.noiseSD > 0
+        ? "Comparing the same segment across years can help, but the result remains noisy. A randomized experiment provides a clearer estimate of lift."
+        : "Because this market is fixed, comparing the same segment with and without advertising across years recovers its modeled lift. A randomized experiment is the more reliable version of that comparison in practice.") +
+      "</p>";
+    $("revealPanel").innerHTML = html;
+  }
+
+  /* ---------- boot ---------- */
+  buildChips("segRegions", CONFIG.regions);
+  buildChips("segEdus", CONFIG.educations);
+  $("incomeHint").innerHTML = "Enter income in <b>thousands per year</b>. Type <b>50</b> for $50k; typing 50000 also works. " +
+    "This population earns $" + incLo + "k–$" + incHi + "k.";
+  $("segAgeMin").min = CONFIG.ageMin;
+  $("segAgeMin").max = CONFIG.ageMax;
+  $("segAgeMax").min = CONFIG.ageMin;
+  $("segAgeMax").max = CONFIG.ageMax;
+  $("segIncMin").placeholder = "e.g. 50";
+  $("segIncMax").placeholder = "any";
+  ["segName", "segAgeMin", "segAgeMax", "segIncMin", "segIncMax"].forEach(function (id) {
+    $(id).addEventListener("input", updatePreview);
+  });
+  $("segGender").addEventListener("change", updatePreview);
+  $("addSegBtn").onclick = addOrUpdateSegment;
+  $("clearFormBtn").onclick = clearForm;
+  $("runYearBtn").onclick = doRunYear;
+  initIntro();
+  updatePreview();
+  renderSegments();
+  $("introOverlay").addEventListener("keydown", trapDialogTab);
+  $("finalOverlay").addEventListener("keydown", trapDialogTab);
+  openDialog($("introOverlay"), $("beliefOptions").querySelector(".belief-opt"));
+})();
+</script>
+</body>
+</html>

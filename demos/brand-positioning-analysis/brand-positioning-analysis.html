@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brand Positioning Analysis</title>
+<!--
+  =====================================================================
+  UNIFIED POSITIONING FLOW  —  Evidence Comparator kit, working v1
+  =====================================================================
+  Merges Katherine's three tools (Identity, Image, Positioning Analysis)
+  into ONE guided flow with shared state. Extension, not replacement:
+  her 14-theme dictionary, examples, framework, and "debatable on purpose"
+  footer all survive. What dies is the triple copy-paste and the silent
+  re-bucketing.
+
+  THREE LAYERS:
+    1. ENGINE        — grouping + comparison + statement check (below CONFIG).
+    2. COURSE_CONFIG — theme dictionary, examples, opposition map, labels.
+    3. FLOW          — the student's work, saved in localStorage.
+
+  Fixes vs. her originals (documented in positioning-tools-analysis.md):
+    - word-boundary matching (no more "old" matching inside "bold")
+    - each term joins ONE best theme (no double-counting)
+    - alignment % recomputed on that single-assignment math, formula shown
+    - the intended positioning statement is now TESTED, not just collected
+  Rule-based and transparent by design; groupings are student-overridable.
+  Runs offline from file://.
+  =====================================================================
+-->
+<style>
+  :root{--blue:#00274c;--maize:#ffcb05;--bg:#f4f6f8;--card:#fff;--ink:#1a2430;--muted:#5b6a7a;--line:#dde3ea;--good:#1d7a3e;--warn:#b7791f;--bad:#b0322b;--id:#e8eef8;--im:#fff4dc;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:"Segoe UI",-apple-system,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;}
+  .topbar{background:var(--blue);color:#fff;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:20;border-bottom:4px solid var(--maize);}
+  .topbar h1{font-size:1.1rem;} .topbar input{border:none;border-radius:6px;padding:6px 8px;font-size:.85rem;}
+  .rossmark{display:block;font-size:.64rem;letter-spacing:.16em;text-transform:uppercase;color:var(--maize);font-weight:700;margin-top:1px;}
+  .topbar .tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .btn{background:var(--blue);color:#fff;border:none;border-radius:7px;padding:8px 15px;font-size:.85rem;cursor:pointer;font-weight:600;} .btn.sec{background:#e8eef5;color:var(--blue);} .btn.sm{padding:5px 10px;font-size:.78rem;} .btn.warn{background:#f7e7e7;color:var(--bad);}
+  .wrap{max-width:1000px;margin:0 auto;padding:18px 18px 90px;}
+  .rail{display:flex;margin:16px 0;flex-wrap:wrap;}
+  .rail .node{flex:1;min-width:170px;border:1px solid var(--line);border-radius:10px;padding:12px;background:#fff;cursor:pointer;font-size:.82rem;}
+  .rail .node.active{border-color:var(--blue);box-shadow:0 1px 5px rgba(0,39,76,.18);}
+  .rail .node h4{color:var(--blue);font-size:.88rem;margin-bottom:2px;}
+  .rail .arrow{display:flex;align-items:center;padding:0 6px;color:var(--good);font-weight:800;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:16px;}
+  .card h2{font-size:1.06rem;color:var(--blue);margin-bottom:8px;display:inline-block;padding-bottom:4px;border-bottom:3px solid var(--maize);} .card h3{font-size:.92rem;color:var(--blue);margin:14px 0 6px;}
+  .sub{color:var(--muted);font-size:.87rem;margin-bottom:12px;}
+  textarea{width:100%;min-height:150px;resize:vertical;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:.86rem;font-family:inherit;}
+  input[type=text]{border:1px solid var(--line);border-radius:7px;padding:7px 9px;font-size:.85rem;}
+  label{font-size:.8rem;font-weight:600;display:block;margin:8px 0 4px;}
+  .checks{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;font-size:.8rem;margin:6px 0;} .checks label{font-weight:400;display:flex;gap:6px;align-items:center;}
+  .themecard{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px;}
+  .themecard.id{background:var(--id);} .themecard.im{background:var(--im);}
+  .themename{font-weight:700;color:var(--blue);font-size:.95rem;margin-bottom:6px;}
+  .term{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:3px 6px 3px 10px;margin:3px;font-size:.8rem;}
+  .term select{border:none;background:#eef2f7;border-radius:12px;font-size:.68rem;padding:2px 4px;color:var(--muted);cursor:pointer;}
+  .term.moved{outline:2px solid var(--maize);}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;} @media(max-width:760px){.grid3{grid-template-columns:1fr;}}
+  .mini{border:1px solid var(--line);border-radius:9px;padding:12px;font-size:.83rem;} .mini.t{background:#e6f4ea;} .mini.a{background:#fff3d6;} .mini.u{background:#fdeaea;} .mini h4{font-size:.82rem;margin-bottom:6px;color:var(--blue);}
+  .chip{display:inline-block;border-radius:20px;padding:4px 11px;margin:3px;font-size:.8rem;font-weight:600;background:#fff;border:1px solid var(--line);}
+  .score{font-size:2rem;font-weight:800;color:var(--blue);}
+  .statement{border:1px dashed var(--blue);border-radius:8px;background:#f0f3f7;padding:11px 13px;font-style:italic;font-size:.87rem;margin:8px 0;}
+  .verdict{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:11px 13px;margin-top:8px;}
+  .badge{font-weight:800;padding:6px 12px;border-radius:8px;white-space:nowrap;} .badge.T{background:#e6f4ea;color:var(--good);} .badge.P{background:#fff3d6;color:var(--warn);} .badge.M{background:#fdeaea;color:var(--bad);}
+  .claimrow{font-size:.82rem;margin:3px 0;} .cl-present{color:var(--good);} .cl-absent{color:var(--warn);} .cl-contra{color:var(--bad);}
+  .callout{border-left:4px solid var(--maize);background:#fffbe9;padding:10px 13px;border-radius:0 8px 8px 0;font-size:.85rem;margin:12px 0;} .callout b{color:var(--blue);}
+  .foot{font-size:.78rem;color:var(--muted);border-top:1px solid var(--line);margin-top:20px;padding-top:12px;}
+  .pane{display:none;} .pane.on{display:block;}
+  .save{font-size:.72rem;color:#a9c4dd;}
+  .hidden{display:none;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div><h1 id="topTitle">Brand Positioning Analysis</h1><span class="rossmark" id="topCourse"></span></div>
+  <div class="tools">
+    <span>Brand:</span><input id="brandInput" type="text" placeholder="e.g. Cacharel" style="width:150px">
+    <button class="btn sec sm" onclick="loadExample('nike')">Nike</button>
+    <button class="btn sec sm" onclick="loadExample('patagonia')">Patagonia</button>
+    <button class="btn sec sm" onclick="loadExample('cacharel')">Cacharel</button>
+    <button class="btn sec sm" onclick="exportJSON()">Save file</button>
+    <button class="btn sec sm" onclick="document.getElementById('imp').click()">Load file</button>
+    <input id="imp" type="file" accept="application/json" class="hidden" onchange="importJSON(event)">
+    <button class="btn warn sm" onclick="resetFlow()">Reset</button>
+    <span class="save" id="saveInd">saved</span>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="rail" id="rail"></div>
+
+  <!-- PANE 1: IDENTITY -->
+  <section class="pane on" id="p1"><div class="card">
+    <h2>Step 1: Identity <span class="sub" style="font-weight:400">Brand-controlled evidence</span></h2>
+    <p class="sub">Identity is what the company itself knows and says about the brand: the founder story, the annual report, the brand's history back to its birth. Gather that evidence here and write the positioning statement the brand intends to own. It travels forward and gets tested in Step 3. Do not judge yet whether consumers see any of it.</p>
+    <div class="callout"><b>Watch for contamination.</b> "People think it's too expensive" is image, not identity. If a phrase describes how consumers currently see the brand, it belongs in Step 2, not here.</div>
+    <div id="idSources" class="checks"></div>
+    <label>Identity evidence, one word or short phrase per line</label>
+    <textarea id="idText" oninput="setEvidence('identity',this.value)"></textarea>
+    <label>Intended positioning statement (the central position the brand wants to own)</label>
+    <input id="idStatement" type="text" style="width:100%" placeholder="e.g. a youthful, romantic French fragrance offering accessible luxury" oninput="setStatement(this.value)">
+    <button class="btn sm" style="margin:14px 0 10px" onclick="regroup('identity')">Generate identity themes</button>
+    <div id="idThemes"></div>
+  </div></section>
+
+  <!-- PANE 2: IMAGE -->
+  <section class="pane" id="p2"><div class="card">
+    <h2>Step 2: Image <span class="sub" style="font-weight:400">Consumer and marketplace evidence</span></h2>
+    <p class="sub">Image lives in the mind of the consumer: reviews, Reddit threads, interviews, social chatter. It can echo the identity, and it can carry distorted or spurious associations the brand never intended. Both belong here. Same rule-based grouping as Step 1, and your themes carry straight into Step 3 on their own.</p>
+    <div id="imSources" class="checks"></div>
+    <label>Image evidence, one word or short phrase per line</label>
+    <textarea id="imText" oninput="setEvidence('image',this.value)"></textarea>
+    <button class="btn sm" style="margin:14px 0 10px" onclick="regroup('image')">Generate image themes</button>
+    <div id="imThemes"></div>
+  </div></section>
+
+  <!-- PANE 3: ANALYSIS -->
+  <section class="pane" id="p3"><div class="card">
+    <h2>Step 3: Positioning Analysis</h2>
+    <p class="sub">Works from exactly the theme groups you built in Steps 1 and 2, statement included. Keeps the transmitted / absent / unintended split and adds a direct test of the stated position.</p>
+    <div class="grid3">
+      <div class="mini t"><h4>Identity transmitted</h4><div id="transmitted"></div></div>
+      <div class="mini a"><h4>Identity absent from image</h4><div id="absent"></div></div>
+      <div class="mini u"><h4>Unintended associations</h4><div id="unintended"></div></div>
+    </div>
+    <div id="alignLine" style="margin-top:10px;font-size:.82rem;color:var(--muted)"></div>
+    <h3>Does the stated position survive?</h3>
+    <div class="statement" id="stmtEcho"></div>
+    <div id="claimBreakdown"></div>
+    <div class="verdict" id="verdictRow"></div>
+    <h3>Teaching diagnosis</h3>
+    <div class="callout" id="diagnosis"></div>
+  </div></section>
+
+  <div class="foot" id="footNote"></div>
+</div>
+
+<script>
+/* =====================================================================
+   LAYER 2 — COURSE_CONFIG. Edit ONLY this to retarget the tool.
+   Katherine's 14-theme dictionary is kept BYTE-FOR-BYTE from her originals.
+   ===================================================================== */
+const COURSE_CONFIG = {
+  courseLabel:"Brand Positioning Analysis",
+  course:"Michigan Ross · WMBA633 Strategic Brand Management",
+  leftLabel:"Identity", rightLabel:"Image",
+  identitySources:["Company website","Annual report","Brand history","Founder story","Advertising","Packaging","Wikipedia/company overview","Mission or values statement"],
+  imageSources:["Amazon/retailer reviews","Reddit/social discussion","TikTok/Instagram comments","Press/articles","Search results","Target interviews","Brandwatch","Other marketplace evidence"],
+  themeDictionary:{
+    "Heritage / Origin":["french","paris","parisian","european","american","japanese","italian","heritage","origin","classic","traditional","tradition","founder","history","historic"],
+    "Romance / Emotion":["romantic","romance","love","emotional","dreamy","tender","sweet","sentimental","soft","gentle","intimate","warm"],
+    "Youth / Energy":["young","youth","youthful","girl","teen","fresh","playful","fun","cool","energetic","modern","new","trendy"],
+    "Femininity / Delicacy":["feminine","woman","women","girly","delicate","light","pastel","pink","rose","pretty","graceful","innocent"],
+    "Luxury / Premium":["luxury","premium","upscale","upmarket","high-end","expensive","exclusive","elegant","elegance","sophisticated","chic","refined"],
+    "Accessibility / Mass Market":["affordable","cheap","accessible","mainstream","mass","mass market","popular","ordinary","value","inexpensive","available"],
+    "Nostalgia / Aging":["nostalgia","nostalgic","vintage","retro","old-fashioned","old fashioned","old","dated","grandma","mother","mom","80s","antique","classic"],
+    "Sensory / Product Cues":["perfume","fragrance","scent","smell","floral","flower","flowers","lily","rose","clothes","fashion","apparel","sneakers","shoes","product"],
+    "Performance / Achievement":["performance","athletic","athlete","sport","sports","achievement","winning","competitive","competition","power","speed","strength","progress"],
+    "Innovation / Modernity":["innovation","innovative","technology","tech","advanced","future","modern","new","cutting-edge","design","creative"],
+    "Sustainability / Responsibility":["sustainable","sustainability","green","eco","environmental","ethical","responsible","activism","activist","climate","recycled","repair","nature"],
+    "Durability / Quality":["durable","durability","quality","reliable","reliability","long-lasting","rugged","strong","well-made","craft","craftsmanship"],
+    "Status / Social Signaling":["status","prestige","aspirational","badge","symbol","elite","exclusive","cool","stylish","fashionable","trendy"],
+    "Place / Usage Context":["outdoor","outdoors","hiking","mountain","adventure","travel","work","office","school","home","gym","running"]
+  },
+  stopWords:["a","an","and","are","as","at","be","brand","but","by","for","from","has","have","how","in","into","is","it","its","of","on","or","that","the","their","this","to","too","very","was","were","what","with","consumer","consumers","target","image","identity","positioning","intended","market","perceived"],
+  // Handcrafted, visible opposition map for the statement "contradicted" test.
+  oppositionMap:{
+    "Luxury / Premium":"Accessibility / Mass Market",
+    "Accessibility / Mass Market":"Luxury / Premium",
+    "Youth / Energy":"Nostalgia / Aging",
+    "Nostalgia / Aging":"Youth / Energy",
+    "Innovation / Modernity":"Nostalgia / Aging"
+  },
+  diagnosisThresholds:{ strong:60, partial:30 },
+  examples:{
+    nike:{brand:"Nike",
+      identity:"Athletic performance\nachievement\ncompetitive spirit\ninnovation\nempowerment\ninspiration\nmovement\nelite athletes\npersonal progress",
+      image:"Sport\nsneakers\nperformance\nathletes\ncool\nexpensive\nstylish\nachievement\ninnovation\nyouth culture\ncompetitive",
+      statement:"For every athlete, the performance brand that turns effort into achievement."},
+    patagonia:{brand:"Patagonia",
+      identity:"Outdoor adventure\nenvironmental responsibility\nsustainability\nactivism\ndurability\nrepair\nanti-consumption\nquality\nnature",
+      image:"Outdoor\nsustainable\nexpensive\ndurable\nactivism\nfleece\nnature\nethical\nquality\nhiking\nenvironmental",
+      statement:"The sustainable outdoor brand built to last a lifetime."},
+    cacharel:{brand:"Cacharel",
+      identity:"French\nromantic\nyouthful\ndelicate\nfeminine\nfloral\nsoft\nfresh\naccessible luxury\nnostalgic elegance",
+      image:"Perfume\nAnais Anais\nfloral\npink\nromantic\nsoft\nvintage\ngrandma\nold-fashioned\naffordable\nmass market\nnostalgic\nsweet",
+      statement:"A youthful, romantic French fragrance offering accessible luxury."}
+  },
+  footNote:"Teaching note: the grouping is rule-based, transparent, and intentionally debatable. Argue with every bucket, and use the dropdown on any term to move it. The tool structures the comparison; you decide the answer. The Nike, Patagonia, and Cacharel examples load as plain editable text, so change them freely; nothing breaks."
+};
+
+/* =====================================================================
+   LAYER 3 — FLOW (the student's work). localStorage.
+   ===================================================================== */
+const BLANK=()=>({brand:"",identity:{evidence:"",statement:""},image:{evidence:""},overrides:{}});
+let F=BLANK();
+const LSKEY="unified_positioning_flow_v1";
+function save(){ localStorage.setItem(LSKEY,JSON.stringify(F)); const s=$("saveInd"); s.textContent="saved ✓"; setTimeout(()=>s.textContent="saved",800); }
+function load(){ try{const r=localStorage.getItem(LSKEY); if(r) F=Object.assign(BLANK(),JSON.parse(r));}catch(e){} }
+
+/* =====================================================================
+   ENGINE — domain-agnostic. Nothing below references marketing/Burson.
+   ===================================================================== */
+const $=id=>document.getElementById(id);
+const CC=COURSE_CONFIG;
+function esc(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");}
+function cleanTerm(t){return (t||"").toLowerCase().replace(/[^\w\s-]/g," ").replace(/\s+/g," ").trim();}
+function splitInput(t){return (t||"").split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean);}
+function reEsc(s){return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
+
+// word-boundary keyword match (fixes bare includes())
+function keywordHit(term,k){
+  const t=cleanTerm(term),kk=cleanTerm(k);
+  if(t===kk) return true;
+  if(kk.length>3){ try{ if(new RegExp("\\b"+reEsc(kk)+"\\b").test(t)) return true; }catch(e){} }
+  const words=t.split(" ").filter(w=>!CC.stopWords.includes(w));
+  return words.includes(kk);
+}
+// best single theme for a term (+ runner-up), respecting overrides
+function bestTheme(term){
+  const key=cleanTerm(term);
+  if(F.overrides[key]) return {theme:F.overrides[key],runnerUp:null,overridden:true};
+  let scores=[];
+  for(const [theme,keys] of Object.entries(CC.themeDictionary)){
+    let s=0; keys.forEach(k=>{ if(keywordHit(term,k)) s++; });
+    if(s>0) scores.push([theme,s]);
+  }
+  if(!scores.length) return {theme:"Other / Ungrouped Associations",runnerUp:null};
+  scores.sort((a,b)=>b[1]-a[1]); // ties keep dictionary order (stable-ish; first inserted wins on equal via original order)
+  return {theme:scores[0][0], runnerUp:scores[1]?scores[1][0]:null};
+}
+// group a side's evidence into {themeName:[terms]}, dedup case-insensitively
+function groupSide(evidence){
+  const seen=new Set(); const groups={};
+  splitInput(evidence).forEach(term=>{
+    const key=cleanTerm(term); if(seen.has(key)||!key) return; seen.add(key);
+    const {theme}=bestTheme(term);
+    (groups[theme]=groups[theme]||[]).push(term);
+  });
+  return groups;
+}
+function themeNames(groups){ return Object.keys(groups).filter(t=>t!=="Other / Ungrouped Associations"); }
+
+/* ---- rendering ---- */
+function renderSources(){
+  $("idSources").innerHTML=CC.identitySources.map(s=>`<label><input type="checkbox">${esc(s)}</label>`).join("");
+  $("imSources").innerHTML=CC.imageSources.map(s=>`<label><input type="checkbox">${esc(s)}</label>`).join("");
+}
+function themeCardsHTML(groups,cls){
+  const order=Object.entries(groups).sort((a,b)=>b[1].length-a[1].length);
+  if(!order.length) return "<p class='sub'>No themes yet. Paste evidence above and generate, then review whether you agree with the groupings.</p>";
+  const allThemes=Object.keys(CC.themeDictionary).concat(["Other / Ungrouped Associations"]);
+  return order.map(([theme,terms])=>`<div class="themecard ${cls}"><div class="themename">${esc(theme)} <span style="font-weight:400;color:var(--muted);font-size:.76rem">${terms.length} term${terms.length===1?"":"s"}</span></div>${
+    terms.map(t=>{const k=cleanTerm(t);return `<span class="term ${F.overrides[k]?'moved':''}">${esc(t)}<select title="Disagree with this grouping? Move the term." onchange="if(this.value)moveTerm('${esc(k)}',this.value)"><option value="">Move</option>${
+      allThemes.filter(th=>th!==theme).map(th=>`<option value="${esc(th)}">${esc(th)}</option>`).join("")
+    }</select></span>`;}).join("")
+  }</div>`).join("");
+}
+function regroup(side){
+  if(side==="identity") $("idThemes").innerHTML=themeCardsHTML(groupSide(F.identity.evidence),"id");
+  else $("imThemes").innerHTML=themeCardsHTML(groupSide(F.image.evidence),"im");
+  renderAnalysis();
+}
+function moveTerm(termKey,theme){ F.overrides[termKey]=theme; save(); regroup("identity"); regroup("image"); }
+
+function setEvidence(side,v){ F[side].evidence=v; save(); }
+function setStatement(v){ F.identity.statement=v; save(); }
+
+/* ---- analysis ---- */
+function renderAnalysis(){
+  const idG=groupSide(F.identity.evidence), imG=groupSide(F.image.evidence);
+  const idT=themeNames(idG), imT=themeNames(imG);
+  const idSet=new Set(idT), imSet=new Set(imT);
+  const transmitted=idT.filter(t=>imSet.has(t));
+  const absent=idT.filter(t=>!imSet.has(t));
+  const unintended=imT.filter(t=>!idSet.has(t));
+  const union=new Set([...idT,...imT]).size;
+  const align=union?Math.round(transmitted.length/union*100):0;
+
+  const chips=(arr,cls)=>arr.length?arr.map(t=>`<span class="chip">${esc(t)}</span>`).join(""):"<span class='sub'>none</span>";
+  $("transmitted").innerHTML=chips(transmitted);
+  $("absent").innerHTML=chips(absent);
+  $("unintended").innerHTML=chips(unintended);
+  $("alignLine").innerHTML=`Alignment: <span class="score">${align}%</span> &nbsp; (${transmitted.length} of ${union} themes transmitted; each term counts toward one theme only)`;
+
+  // statement check
+  const stmt=F.identity.statement||"";
+  $("stmtEcho").textContent=stmt?`"${stmt}"`:"(no intended positioning statement entered in Step 1)";
+  const claimThemes=statementThemes(stmt);
+  let rows="",present=0;
+  claimThemes.forEach(th=>{
+    let status,cls;
+    if(imSet.has(th)){ status="present in image"; cls="cl-present"; present++; }
+    else if(CC.oppositionMap[th] && imSet.has(CC.oppositionMap[th])){ status=`contradicted (image shows ${CC.oppositionMap[th]})`; cls="cl-contra"; }
+    else { status="absent from image"; cls="cl-absent"; }
+    rows+=`<div class="claimrow"><b>${esc(th)}</b>: <span class="${cls}">${esc(status)}</span></div>`;
+  });
+  if(!claimThemes.length) rows="<p class='sub'>The statement does not map onto the theme vocabulary yet. Try phrasing the position in the words the brand would actually use, then look again.</p>";
+  $("claimBreakdown").innerHTML=rows;
+
+  let vClass="M",vLabel="MISSED",vText="The stated position does not show up in the consumer image.";
+  if(claimThemes.length){
+    if(present===claimThemes.length){ vClass="T";vLabel="TRANSMITTED";vText="Every part of the stated position is present in the image."; }
+    else if(present>0){ vClass="P";vLabel="PARTIAL";vText=`${present} of ${claimThemes.length} parts of the stated position land. The rest are absent or contradicted. Worth asking: is that a delivery problem, a communication problem, or something competitors shaped?`; }
+  } else { vClass="M";vLabel="—";vText=""; }
+  $("verdictRow").innerHTML = claimThemes.length?`<span class="badge ${vClass}">${vLabel}</span><span style="font-size:.85rem">${esc(vText)}</span>`:"";
+  $("verdictRow").style.display = claimThemes.length?"flex":"none";
+
+  // teaching diagnosis (her thresholds preserved)
+  const brand=F.brand||"This brand"; const th=CC.diagnosisThresholds; let d;
+  if(align>=th.strong) d=`<b>${esc(brand)} shows relatively strong alignment.</b> Several identity themes are present in the image, so the intended positioning is transmitting reasonably well through marketplace touchpoints.`;
+  else if(align>=th.partial) d=`<b>${esc(brand)} shows partial alignment.</b> Some identity themes are present, but important parts are not clearly showing up. Good case for discussing whether execution, touchpoints, or legacy associations are weakening the intended position.`;
+  else d=`<b>${esc(brand)} shows weak alignment.</b> The image does not strongly reflect the identity. That points to a positioning, communication, legacy image, or competitor interference problem.`;
+  d+=`<br><br><b>Transmitted:</b> ${transmitted.join(", ")||"none"}.<br><b>Absent:</b> ${absent.join(", ")||"none"}.<br><b>Unintended:</b> ${unintended.join(", ")||"none"}.`;
+  $("diagnosis").innerHTML=d;
+}
+function statementThemes(stmt){
+  if(!stmt) return [];
+  const words=cleanTerm(stmt).split(" ").filter(w=>w && !CC.stopWords.includes(w));
+  const themes=new Set();
+  words.forEach(w=>{ const {theme}=bestTheme(w); if(theme!=="Other / Ungrouped Associations") themes.add(theme); });
+  // also try whole phrases against dictionary via each word already covers most
+  return [...themes];
+}
+
+/* ---- examples / IO ---- */
+function loadExample(k){
+  const ex=CC.examples[k]; if(!ex) return;
+  F=BLANK(); F.brand=ex.brand; F.identity.evidence=ex.identity; F.identity.statement=ex.statement; F.image.evidence=ex.image;
+  save(); syncInputs(); regroup("identity"); regroup("image"); renderAnalysis();
+}
+function syncInputs(){
+  $("brandInput").value=F.brand||""; $("idText").value=F.identity.evidence||"";
+  $("idStatement").value=F.identity.statement||""; $("imText").value=F.image.evidence||"";
+}
+function exportJSON(){ const b=new Blob([JSON.stringify(F,null,2)],{type:"application/json"}); const u=URL.createObjectURL(b); const a=document.createElement("a"); a.href=u; a.download=(F.brand||"positioning")+".json"; a.click(); URL.revokeObjectURL(u); }
+function importJSON(e){ const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{ try{ F=Object.assign(BLANK(),JSON.parse(r.result)); save(); syncInputs(); regroup("identity"); regroup("image"); renderAnalysis(); }catch(err){ alert("Bad file: "+err.message); } }; r.readAsText(f); e.target.value=""; }
+function resetFlow(){ if(confirm("Clear this analysis on this device?")){ F=BLANK(); save(); syncInputs(); regroup("identity"); regroup("image"); renderAnalysis(); } }
+
+/* ---- rail / panes ---- */
+const NODES=[["1","Identity","Brand-controlled evidence"],["2","Image","Consumer evidence"],["3","Positioning Analysis","Transmitted, absent, unintended, and the claim test"]];
+let cur=1;
+function renderRail(){
+  $("rail").innerHTML=NODES.map((n,i)=>`${i>0?'<div class="arrow">→</div>':''}<div class="node ${cur===i+1?'active':''}" onclick="showPane(${i+1})"><h4>${n[0]} · ${n[1]}</h4>${n[2]}</div>`).join("");
+}
+function showPane(n){ cur=n; document.querySelectorAll(".pane").forEach((p,i)=>p.classList.toggle("on",i===n-1)); if(n===3) renderAnalysis(); renderRail(); window.scrollTo({top:0,behavior:"smooth"}); }
+
+$("brandInput").addEventListener("input",e=>{F.brand=e.target.value;save();});
+
+function boot(){
+  $("topTitle").textContent=CC.courseLabel; $("topCourse").textContent=CC.course; $("footNote").innerHTML=CC.footNote;
+  renderSources(); load(); syncInputs();
+  regroup("identity"); regroup("image"); renderAnalysis(); renderRail();
+}
+boot();
+</script>
+</body>
+</html>

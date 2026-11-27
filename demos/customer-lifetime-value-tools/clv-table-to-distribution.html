@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>From survivor table to CLV distribution | MKT 626</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --blue: #00274C;
+      --blue-mid: #2F65A7;
+      --blue-tint: #E7EDF4;
+      --maize: #FFCB05;
+      --maize-dark: #D9A900;
+      --maize-edge: #8A6D00;
+      --maize-tint: #FFF6D6;
+      --red: #9A3324;
+      --red-soft: #F6E3DF;
+      --ink: #1F2A37;
+      --muted: #5B6B7C;
+      --paper: #FAFBFC;
+      --line: #D9E0E7;
+      --shadow: 0 14px 40px rgba(0, 39, 76, .08);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    :focus-visible { outline: 3px solid rgba(47, 101, 167, .45); outline-offset: 3px; }
+    .shell { width: min(1380px, calc(100% - 30px)); margin: 0 auto; padding: 26px 0 64px; }
+
+    .hero { display: grid; grid-template-columns: 1.45fr .75fr; gap: 28px; align-items: end; margin-bottom: 22px; padding-bottom: 20px; border-bottom: 4px solid var(--maize); }
+    .eyebrow { margin: 0 0 8px; color: var(--blue-mid); font-size: .74rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+    h1 { margin: 0; max-width: 850px; color: var(--blue); font-family: inherit; font-size: clamp(2rem, 4.3vw, 3.5rem); font-weight: 800; line-height: 1.06; letter-spacing: -.035em; }
+    .lede { max-width: 760px; margin: 16px 0 0; color: var(--muted); font-size: 1.02rem; }
+    .hero-aside { border-left: 3px solid var(--maize); padding: 4px 0 4px 18px; color: var(--muted); font-size: .86rem; }
+    .hero-aside strong { display: block; margin-bottom: 4px; color: var(--blue); }
+    .card { border: 1px solid rgba(0, 39, 76, .12); border-radius: var(--radius); background: #fff; box-shadow: var(--shadow); }
+
+    .control-bar { display: grid; grid-template-columns: minmax(250px, .75fr) 1.25fr auto; gap: 20px; align-items: center; padding: 16px 18px; }
+    .main-control label, .mini-control label { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; color: var(--muted); font-size: .73rem; font-weight: 800; }
+    output { color: var(--ink); font-variant-numeric: tabular-nums; }
+    input[type="range"] { width: 100%; accent-color: var(--blue-mid); }
+    input[type="number"] { width: 100%; border: 1px solid var(--line); border-radius: 9px; background: #fff; padding: 8px 9px; color: var(--ink); font-variant-numeric: tabular-nums; }
+    .baseline { color: var(--muted); font-size: .76rem; }
+    .baseline b { color: var(--blue); }
+    .settings-toggle { border: 1px solid var(--line); border-radius: 999px; background: var(--blue-tint); padding: 9px 13px; color: var(--blue); font-size: .74rem; font-weight: 800; cursor: pointer; }
+    .advanced { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; border-top: 1px solid var(--line); padding-top: 15px; }
+    .advanced[hidden] { display: none; }
+    .reset { align-self: end; border: 0; border-bottom: 1px solid currentColor; background: transparent; padding: 2px; color: var(--blue-mid); font-size: .72rem; font-weight: 800; cursor: pointer; }
+
+    .metrics { display: grid; grid-template-columns: repeat(5, 1fr); margin: 14px 0 22px; overflow: hidden; }
+    .metric { min-height: 86px; border-right: 1px solid var(--line); padding: 16px 17px; }
+    .metric:last-child { border-right: 0; }
+    .metric b { display: block; color: var(--blue); font-family: inherit; font-size: 1.45rem; font-weight: 750; letter-spacing: -.02em; line-height: 1.15; font-variant-numeric: tabular-nums; }
+    .metric span { display: block; margin-top: 6px; color: var(--muted); font-size: .7rem; }
+    .metric.locked b { color: #9AA6AF; font-family: inherit; font-size: .8rem; }
+
+    .stepper { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 14px; }
+    .step { min-height: 72px; border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 10px 12px; text-align: left; cursor: pointer; }
+    .step small { display: block; color: var(--muted); font-size: .64rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .step span { display: block; margin-top: 4px; font-size: .8rem; font-weight: 700; }
+    .step[aria-selected="true"] { border-color: var(--blue); background: var(--blue); color: #fff; box-shadow: 0 8px 22px rgba(0, 39, 76, .25); }
+    .step[aria-selected="true"] small { color: var(--maize); }
+
+    .question { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; margin-bottom: 14px; border: 1px solid #EAD98F; border-radius: 14px; background: var(--maize-tint); padding: 13px 15px; }
+    .qmark { display: grid; width: 33px; height: 33px; place-items: center; border-radius: 50%; background: var(--maize); color: var(--blue); font-weight: 900; }
+    .question p { margin: 0; font-size: .87rem; }
+    .question button { border: 0; border-bottom: 1px solid currentColor; background: transparent; padding: 2px; color: #6E5600; font-size: .74rem; font-weight: 800; cursor: pointer; }
+    .answer { grid-column: 2 / -1; border-top: 1px solid #EAD98F; padding-top: 9px; color: #5B4A10; font-size: .8rem !important; }
+    .answer[hidden] { display: none; }
+
+    .workspace { display: grid; grid-template-columns: minmax(390px, .82fr) minmax(540px, 1.18fr); gap: 14px; align-items: start; }
+    .table-card { position: sticky; top: 10px; min-width: 0; overflow: hidden; }
+    .panel-head { display: flex; justify-content: space-between; gap: 14px; align-items: start; padding: 17px 18px 12px; }
+    .panel-head h2, .chart-head h2 { margin: 0; color: var(--blue); font-size: .98rem; }
+    .panel-head p, .chart-head p { margin: 4px 0 0; color: var(--muted); font-size: .72rem; }
+    .selection { max-width: 150px; border-radius: 10px; background: var(--blue-tint); padding: 8px 10px; color: var(--muted); font-size: .68rem; text-align: right; }
+    .selection b { display: block; color: var(--blue); font-size: .78rem; }
+    .table-scroll { height: 690px; overflow: auto; border-top: 1px solid var(--line); }
+    table { width: 100%; border-collapse: collapse; font-size: .7rem; font-variant-numeric: tabular-nums; }
+    th { position: sticky; top: 0; z-index: 2; background: var(--blue-tint); color: var(--blue); font-size: .65rem; text-align: right; }
+    th:first-child, td:first-child { text-align: left; }
+    th, td { border-bottom: 1px solid #E9EDF1; padding: 8px 8px; text-align: right; white-space: nowrap; }
+    tbody tr { cursor: pointer; }
+    tbody tr:hover, tbody tr.active { background: var(--maize-tint); }
+    tbody tr.locked { box-shadow: inset 4px 0 var(--maize); background: #FFF0B8; }
+    tbody tr:focus-visible { outline-offset: -3px; }
+    tbody tr.tail { border-top: 2px solid var(--blue); background: #F1F5F9; }
+    .col-new { animation: reveal .22s ease-out; }
+    @keyframes reveal { from { opacity: .2; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+
+    .charts { display: grid; gap: 14px; min-width: 0; }
+    .chart-card { overflow: hidden; }
+    .chart-card[hidden], .formula-card[hidden], .risk-card[hidden] { display: none; }
+    .chart-head { padding: 16px 18px 0; }
+    .chart-wrap { overflow-x: auto; padding: 0 8px 6px; }
+    svg { display: block; width: 100%; min-width: 570px; height: auto; font-family: inherit; }
+    .axis { stroke: #A7B3BC; stroke-width: 1; }
+    .grid { stroke: #E9EDF1; stroke-width: 1; }
+    .tick { fill: #718190; font-size: 10.5px; }
+    .chart-label { fill: var(--blue); font-size: 11px; font-weight: 750; }
+    .chart-point { cursor: pointer; }
+    .chart-point.is-active { stroke: var(--maize-dark) !important; stroke-width: 5px !important; }
+    .avg-mark { margin-left: 4px; padding: 0 3px; border: 1px solid var(--muted); border-radius: 3px;
+      font-size: .6rem; font-weight: 700; color: var(--muted); text-decoration: none; cursor: help;
+      vertical-align: 1px; }
+
+    .formula-card { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: center; padding: 17px 18px; }
+    .formula-card .route { min-width: 0; }
+    .formula-card small { display: block; color: var(--muted); font-size: .67rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    .formula-card code { display: block; margin-top: 4px; color: var(--ink); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78rem; white-space: normal; }
+    .formula-card b { display: block; margin-top: 5px; color: var(--blue); font-family: inherit; font-size: 1.3rem; font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+    .formula-card .route-note { display: block; margin-top: 3px; color: var(--muted); font-size: .68rem; font-weight: 500; letter-spacing: normal; text-transform: none; }
+    .equals { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 50%; background: var(--maize); color: var(--blue); font-weight: 900; }
+    .risk-card { border-color: #DCB8B0; background: linear-gradient(135deg, #fff 0, var(--red-soft) 100%); padding: 17px 18px; }
+    .risk-card h2 { margin: 0 0 6px; color: var(--blue); font-size: .98rem; }
+    .risk-card p { margin: 0; color: var(--muted); font-size: .8rem; }
+    .risk-card strong { color: var(--red); }
+
+    .method { margin-top: 14px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+    .method summary { padding: 13px 16px; color: var(--blue); font-size: .79rem; font-weight: 800; cursor: pointer; }
+    .method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 0 16px 16px; color: var(--muted); font-size: .75rem; }
+    .method-grid p { margin: 0; }
+    .method code { border-radius: 4px; background: var(--blue-tint); padding: 1px 4px; color: var(--blue); }
+    footer { margin-top: 20px; color: var(--muted); font-size: .69rem; text-align: center; }
+
+    @media (max-width: 1060px) {
+      .workspace { grid-template-columns: 1fr; }
+      .table-card { position: static; }
+      .table-scroll { height: 430px; }
+      .control-bar { grid-template-columns: 1fr 1fr auto; }
+    }
+    @media (max-width: 780px) {
+      .hero { grid-template-columns: 1fr; }
+      .stepper { grid-template-columns: 1fr 1fr; }
+      .step:last-child { grid-column: 1 / -1; }
+      .metrics { grid-template-columns: 1fr 1fr; }
+      .metric:nth-child(even) { border-right: 0; }
+      .metric:nth-child(n+3) { border-top: 1px solid var(--line); }
+      .control-bar { grid-template-columns: 1fr; }
+      .advanced { grid-template-columns: 1fr 1fr; }
+      .settings-toggle { justify-self: start; }
+      .formula-card { grid-template-columns: 1fr; }
+      .equals { transform: rotate(90deg); }
+    }
+    @media (max-width: 560px) {
+      .shell { width: min(100% - 18px, 1380px); padding-top: 18px; }
+      h1 { font-size: 2.3rem; }
+      .question { grid-template-columns: auto 1fr; }
+      .question button { grid-column: 2; justify-self: start; }
+      .answer { grid-column: 1 / -1; }
+      .advanced { grid-template-columns: 1fr; }
+      .table-scroll { height: 380px; }
+      .method-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">MKT 626 · Customer heterogeneity · Tool 2</p>
+        <h1>From survivor table to CLV distribution</h1>
+        <p class="lede">The survivor curve and the CLV distribution look like separate analyses. They are not. Both come straight from the rows of one table. Hover a row, or a point on either chart, and follow the same lifetime everywhere.</p>
+      </div>
+      <div class="hero-aside"><strong>Read the table first</strong>Every row is one possible customer lifetime. The charts just rearrange columns that are already in the table.</div>
+    </header>
+
+    <section class="control-bar card" aria-label="Model controls">
+      <div class="main-control"><label for="cac"><span>Acquisition cost (CAC)</span><output data-output="cac"></output></label><input id="cac" data-key="cac" type="range" min="0" max="400" step="1" value="50"></div>
+      <div class="baseline"><b>Blue Apron sBG baseline</b><br>Monthly contribution $26.8164 · discount 1.53% · gamma 0.6746 · delta 1.2336</div>
+      <button class="settings-toggle" id="settings-toggle" type="button" aria-expanded="false">Model settings</button>
+      <div class="advanced" id="advanced" hidden>
+        <div class="mini-control"><label for="gamma"><span>Gamma</span><output data-output="gamma"></output></label><input id="gamma" data-key="gamma" type="number" min="0.1" max="2" step="0.0001" value="0.6746182701085135"></div>
+        <div class="mini-control"><label for="delta"><span>Delta</span><output data-output="delta"></output></label><input id="delta" data-key="delta" type="number" min="0.2" max="4" step="0.0001" value="1.2336012934958855"></div>
+        <div class="mini-control"><label for="contribution"><span>Contribution / month</span><output data-output="contribution"></output></label><input id="contribution" data-key="contribution" type="number" min="5" max="70" step="0.0001" value="26.8164"></div>
+        <div class="mini-control"><label for="discount"><span>Monthly discount</span><output data-output="discount"></output></label><input id="discount" data-key="discount" type="number" min="0.001" max="0.05" step="0.0001" value="0.0153"></div>
+        <button class="reset" id="reset" type="button">Reset workbook defaults</button>
+      </div>
+    </section>
+
+    <section class="metrics card" aria-label="Model results">
+      <div class="metric"><b id="metric-r1">...</b><span>Retention into month 2, r(1)</span></div>
+      <div class="metric"><b id="metric-r12">...</b><span>Retention into month 13, r(12)</span></div>
+      <div class="metric locked" data-unlock="4"><b id="metric-eclv">Unlocks in step 4</b><span>Expected CLV after CAC</span></div>
+      <div class="metric locked" data-unlock="4"><b id="metric-median">Unlocks in step 4</b><span>Median customer CLV</span></div>
+      <div class="metric locked" data-unlock="5"><b id="metric-loss">Unlocks in step 5</b><span>Customers who never cover CAC</span></div>
+    </section>
+
+    <nav class="stepper" role="tablist" aria-label="Learning steps">
+      <button class="step" type="button" role="tab" aria-selected="true" data-step="1"><small>Step 1</small><span>The survivor table</span></button>
+      <button class="step" type="button" role="tab" aria-selected="false" data-step="2"><small>Step 2</small><span>What is one lifetime worth?</span></button>
+      <button class="step" type="button" role="tab" aria-selected="false" data-step="3"><small>Step 3</small><span>How likely is each lifetime?</span></button>
+      <button class="step" type="button" role="tab" aria-selected="false" data-step="4"><small>Step 4</small><span>The average is weighted</span></button>
+      <button class="step" type="button" role="tab" aria-selected="false" data-step="5"><small>Step 5</small><span>Who never pays back?</span></button>
+    </nav>
+
+    <section class="question" aria-live="polite">
+      <span class="qmark" aria-hidden="true">?</span>
+      <p id="question-text"></p>
+      <button id="answer-toggle" type="button" aria-expanded="false">Check your thinking</button>
+      <p class="answer" id="answer-text" hidden></p>
+    </section>
+
+    <section class="workspace">
+      <section class="table-card card" aria-labelledby="table-title">
+        <div class="panel-head">
+          <div><h2 id="table-title">The survivor-value table</h2><p>Hover to trace. Click or press Enter to lock a row.</p></div>
+          <div class="selection" id="selection" aria-live="polite"><b>No row selected</b>Choose a lifetime.</div>
+        </div>
+        <div class="table-scroll" id="table-scroll"><table role="grid" aria-label="Survivor and customer value rows"><thead id="table-head"></thead><tbody id="table-body"></tbody></table></div>
+      </section>
+
+      <section class="charts" aria-label="Coordinated charts">
+        <section class="chart-card card" aria-labelledby="survival-title">
+          <div class="chart-head"><h2 id="survival-title">Survivor curve</h2><p>S(t) is the share of the original cohort still active at the start of month t+1.</p></div>
+          <div class="chart-wrap"><svg id="survival-chart" viewBox="0 0 720 285" role="img" aria-label="Beta-geometric survivor curve"></svg></div>
+        </section>
+
+        <section class="chart-card card" id="value-card" hidden aria-labelledby="value-title">
+          <div class="chart-head"><h2 id="value-title">CLV if the customer lasts L months</h2><p>Longer realized lifetimes sit lower in the table and higher in value.</p></div>
+          <div class="chart-wrap"><svg id="value-chart" viewBox="0 0 720 285" role="img" aria-label="Customer lifetime value by realized lifetime"></svg></div>
+        </section>
+
+        <section class="chart-card card" id="distribution-card" hidden aria-labelledby="distribution-title">
+          <div class="chart-head"><h2 id="distribution-title">Probability distribution of CLV</h2><p>CLV sets the horizontal position; P(L) sets the height. Same rows, rearranged.</p></div>
+          <div class="chart-wrap"><svg id="distribution-chart" viewBox="0 0 720 300" role="img" aria-label="Probability distribution of customer lifetime value"></svg></div>
+        </section>
+
+        <section class="formula-card card" id="formula-card" hidden aria-label="Two routes to expected value">
+          <div class="route"><small>Route A · discount the survivor curve</small><code>E(PAV) = sum of m x S(t) / (1+d)^t</code><b id="route-a">...</b><span class="route-note" id="route-a-note"></span></div>
+          <span class="equals" aria-label="equals">=</span>
+          <div class="route"><small>Route B · weight every lifetime</small><code>E(CLV) = sum of P(L) x CLV(L)</code><b id="route-b">...</b><span class="route-note" id="route-b-note"></span></div>
+        </section>
+
+        <section class="risk-card card" id="risk-card" hidden aria-labelledby="risk-title">
+          <h2 id="risk-title">The average hides the downside</h2>
+          <p id="risk-copy"></p>
+        </section>
+      </section>
+    </section>
+
+    <details class="method">
+      <summary>Model, row mapping, and source notes</summary>
+      <div class="method-grid">
+        <p><strong>Fitted inputs.</strong> <code>Class 7 - BG and CLV.xlsx</code>: <code>Beta Geometric (BG)!B1:B2</code> supplies gamma and delta. <code>BG CLV!E1:E5</code> supplies AOF, AOV, margin, monthly contribution, and discount rate. Retention, survival, churn probability, discounting, and value formulas follow <code>BG CLV!C9:J594</code>.</p>
+        <p><strong>Tail row.</strong> The visible table shows lifetimes 1 to 60 plus a 61+ aggregate. Its probability is S(60), and its displayed PAV and CLV are the probability-weighted conditional average of the remaining model tail. That keeps both expected-value routes complete without pretending the tail is a single lifetime.</p>
+      </div>
+    </details>
+    <footer>Self-contained teaching prototype · PAV is value before CAC; CLV = PAV - CAC · Built for MKT 626 at Michigan Ross</footer>
+  </main>
+
+  <script>
+  /*MATH-CORE-START*/
+  'use strict';
+  const DistributionMath = (() => {
+    function lnGamma(x) {
+      const c = [676.5203681218851, -1259.1392167224028, 771.32342877765313,
+        -176.61502916214059, 12.507343278686905, -0.13857109526572012,
+        9.9843695780195716e-6, 1.5056327351493116e-7];
+      if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - lnGamma(1 - x);
+      x -= 1;
+      let a = 0.99999999999980993;
+      const t = x + 7.5;
+      for (let i = 0; i < 8; i++) a += c[i] / (x + i + 1);
+      return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+    }
+    function lnBeta(a, b) { return lnGamma(a) + lnGamma(b) - lnGamma(a + b); }
+    function survival(gamma, delta, t) {
+      if (t <= 0) return 1;
+      return Math.exp(lnBeta(gamma, delta + t) - lnBeta(gamma, delta));
+    }
+    function retention(gamma, delta, t) {
+      if (t <= 0) return 1;
+      return survival(gamma, delta, t) / survival(gamma, delta, t - 1);
+    }
+    function probabilityLifetime(gamma, delta, lifetime) {
+      return survival(gamma, delta, lifetime - 1) - survival(gamma, delta, lifetime);
+    }
+    function normalize(raw) {
+      const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, Number(v)));
+      return {
+        gamma: clamp(raw.gamma, 0.001, 100),
+        delta: clamp(raw.delta, 0.001, 100),
+        contribution: clamp(raw.contribution, 0, 100000),
+        discount: clamp(raw.discount, 0.000001, 10),
+        cac: clamp(raw.cac, 0, 1000000),
+        horizon: Math.round(clamp(raw.horizon ?? 2400, 120, 10000)),
+        displayRows: Math.round(clamp(raw.displayRows ?? 60, 12, 240))
+      };
+    }
+    function buildModel(raw) {
+      const p = normalize(raw);
+      const s = new Array(p.horizon + 1);
+      const pav = new Array(p.horizon + 1);
+      let cumulativePav = 0, expectedPav = 0;
+      for (let t = 0; t <= p.horizon; t++) {
+        s[t] = survival(p.gamma, p.delta, t);
+        const dcf = p.contribution / Math.pow(1 + p.discount, t);
+        cumulativePav += dcf;
+        pav[t] = cumulativePav;
+        expectedPav += dcf * s[t];
+      }
+      const rows = [];
+      let displayedPavContribution = 0;
+      for (let lifetime = 1; lifetime <= p.displayRows; lifetime++) {
+        const probability = s[lifetime - 1] - s[lifetime];
+        const rowPav = pav[lifetime - 1];
+        displayedPavContribution += probability * rowPav;
+        rows.push({ index: lifetime - 1, label: String(lifetime), lifetime,
+          startT: lifetime - 1, survival: s[lifetime - 1],
+          retentionNext: retention(p.gamma, p.delta, lifetime), probability,
+          pav: rowPav, clv: rowPav - p.cac, weightedClv: probability * (rowPav - p.cac),
+          // Value of one exact lifetime. For every row but the tail this is the same
+          // number as `clv`; the value chart uses this field so the two never diverge.
+          pavAtLifetime: rowPav, clvAtLifetime: rowPav - p.cac, isTail: false });
+      }
+      const tailProbability = s[p.displayRows];
+      const tailPavContribution = Math.max(0, expectedPav - displayedPavContribution);
+      const tailAveragePav = tailProbability > 0 ? tailPavContribution / tailProbability : pav[p.displayRows];
+      // The tail row carries TWO different values, and conflating them is a real trap.
+      //   pav / clv          = E[PAV | L > displayRows], the probability-weighted mean of
+      //                        everyone in the tail. The distribution needs this so its
+      //                        SUMPRODUCT still equals the survivor route exactly.
+      //   pavAtLifetime /    = the value of a single lifetime of exactly displayRows+1
+      //   clvAtLifetime        months. The value chart needs this, because that chart
+      //                        answers "what is one lifetime worth", not "what is the
+      //                        tail worth on average". Using the weighted mean there made
+      //                        the last point jump ~45x a normal step.
+      rows.push({ index: p.displayRows, label: `${p.displayRows + 1}+`, lifetime: p.displayRows + 1,
+        startT: p.displayRows, survival: tailProbability, retentionNext: null,
+        probability: tailProbability, pav: tailAveragePav, clv: tailAveragePav - p.cac,
+        weightedClv: tailProbability * (tailAveragePav - p.cac),
+        pavAtLifetime: pav[p.displayRows], clvAtLifetime: pav[p.displayRows] - p.cac,
+        isTail: true });
+
+      let medianLifetime = 1;
+      while (medianLifetime < p.horizon && 1 - s[medianLifetime] < 0.5) medianLifetime++;
+      const medianPav = pav[medianLifetime - 1];
+      let paybackLifetime = null;
+      for (let lifetime = 1; lifetime <= p.horizon + 1; lifetime++) {
+        if (pav[Math.min(lifetime - 1, p.horizon)] >= p.cac) { paybackLifetime = lifetime; break; }
+      }
+      let unprofitableShare = 0;
+      if (p.cac > 0) {
+        let lastLosingLifetime = 0;
+        for (let lifetime = 1; lifetime <= p.horizon + 1; lifetime++) {
+          if (pav[Math.min(lifetime - 1, p.horizon)] < p.cac) lastLosingLifetime = lifetime;
+          else break;
+        }
+        unprofitableShare = lastLosingLifetime > p.horizon ? 1 : 1 - s[lastLosingLifetime];
+      }
+      const expectedClv = expectedPav - p.cac;
+      const distributionExpectedClv = rows.reduce((sum, row) => sum + row.weightedClv, 0);
+      // Ceiling the value curve approaches but never reaches: an annuity-due of the
+      // monthly contribution paid forever. However long a customer lasts, one lifetime
+      // can never be worth more than this.
+      const asymptotePav = p.contribution * (1 + p.discount) / p.discount;
+      return { ...p, s, pav, rows, expectedPav, expectedClv, distributionExpectedClv,
+        medianLifetime, medianPav, medianClv: medianPav - p.cac,
+        paybackLifetime, unprofitableShare, r1: retention(p.gamma, p.delta, 1),
+        r12: retention(p.gamma, p.delta, 12), tailProbability,
+        asymptotePav, asymptoteClv: asymptotePav - p.cac };
+    }
+    return { lnGamma, lnBeta, survival, retention, probabilityLifetime, normalize, buildModel };
+  })();
+  /*MATH-CORE-END*/
+
+  (() => {
+    const $ = s => document.querySelector(s);
+    const $$ = s => [...document.querySelectorAll(s)];
+    const money = (v, digits=2) => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:digits,maximumFractionDigits:digits}).format(v);
+    const pct = (v,digits=1) => `${(v*100).toFixed(digits)}%`;
+    const BLUE = '#00274C', BLUE_MID = '#2F65A7', MAIZE = '#FFCB05', MAIZE_DARK = '#D9A900', RED = '#9A3324';
+    const initialStep = Math.min(5, Math.max(1, Number(location.hash.match(/step-(\d+)/)?.[1] || 1)));
+    const state = { step: initialStep, hover: null, locked: null, model: null };
+    const defaults = { gamma: 0.6746182701085135, delta: 1.2336012934958855, contribution: 26.8164, discount: 0.0153, cac: 50 };
+    const formats = { cac:v=>money(v,0), gamma:v=>v.toFixed(4), delta:v=>v.toFixed(4), contribution:v=>money(v,2), discount:v=>pct(v,2) };
+    const activeIndex = () => state.hover ?? state.locked;
+    const inputs = () => Object.fromEntries($$('[data-key]').map(el => [el.dataset.key, Number(el.value)]));
+
+    function breakEvenShare(model) {
+      return DistributionMath.buildModel({...inputs(), cac:model.expectedPav}).unprofitableShare;
+    }
+    const questions = {
+      1: m => ({q:`Retention climbs from ${pct(m.r1)} in month 1 to ${pct(m.r12)} in month 12. Did customers get more loyal?`,a:'No individual changed. The customers most likely to churn leave first, so the group that remains is a steadily more loyal mix. That sorting effect is the whole point of the beta-geometric model.'}),
+      2: m => ({q:'What is a customer worth if they last exactly one month?',a:`They produce one undiscounted contribution of ${money(m.contribution)}. After ${money(m.cac,0)} of CAC, their CLV is ${money(m.rows[0].clv)}.`}),
+      3: m => ({q:'What share of the cohort lasts exactly one month?',a:`${pct(m.rows[0].probability)}, the single biggest group. Its bar in the distribution uses the same P(L) value you can see in the first row of the table.`}),
+      4: m => ({q:'Expected CLV versus median CLV: which one describes a typical customer?',a:`The median. Expected CLV is ${money(m.expectedClv)}, but the median customer is worth ${money(m.medianClv)}. A small group of long-lived customers pulls the average up, so the average describes almost nobody.`}),
+      5: m => ({q:'How high can CAC go before expected CLV hits zero, and what does customer-level risk look like at that point?',a:`CAC can rise to expected PAV, which is ${money(m.expectedPav)}. The cohort then breaks even on average, yet about ${pct(breakEvenShare(m))} of customers individually lose money. The long tail carries everyone else.`})
+    };
+
+    function setStep(step) {
+      state.step = Number(step);
+      $$('.step').forEach(btn => {
+        const selected = Number(btn.dataset.step)===state.step;
+        btn.setAttribute('aria-selected', String(selected));
+        btn.tabIndex = selected ? 0 : -1;
+      });
+      render();
+    }
+    function renderMetrics(m) {
+      $('#metric-r1').textContent = pct(m.r1);
+      $('#metric-r12').textContent = pct(m.r12);
+      $('#metric-eclv').textContent = state.step>=4 ? money(m.expectedClv) : 'Unlocks in step 4';
+      $('#metric-median').textContent = state.step>=4 ? money(m.medianClv) : 'Unlocks in step 4';
+      $('#metric-loss').textContent = state.step>=5 ? pct(m.unprofitableShare) : 'Unlocks in step 5';
+      $$('[data-unlock]').forEach(el=>el.classList.toggle('locked',state.step<Number(el.dataset.unlock)));
+    }
+    function renderQuestion(m) {
+      const q=questions[state.step](m);
+      $('#question-text').textContent=q.q;
+      $('#answer-text').textContent=q.a;
+      $('#answer-text').hidden=true;
+      $('#answer-toggle').setAttribute('aria-expanded','false');
+      $('#answer-toggle').textContent='Check your thinking';
+    }
+    function tableHeaders() {
+      const h=['Lifetime L','S(L-1)','r(next)'];
+      if(state.step>=2) h.push('PAV(L)','CLV(L)');
+      if(state.step>=3) h.push('P(L)');
+      if(state.step>=4) h.push('P(L) x CLV(L)');
+      return h;
+    }
+    // Shared by renderTable and updateHighlight so the caption can never drift between them.
+    function selectionHtml(row) {
+      if(!row) return '<b>No row selected</b>Choose a lifetime.';
+      const n=state.model.displayRows+1;
+      return `<b>Lifetime ${row.label} months</b>${row.isTail
+        ? `${pct(row.probability)} of customers last this long or longer. The table shows their average value; the chart point is a lifetime of exactly ${n} months, worth ${money(row.clvAtLifetime)}.`
+        : `${pct(row.probability)} of customers`}`;
+    }
+    function renderTable(m) {
+      $('#table-head').innerHTML=`<tr>${tableHeaders().map(h=>`<th>${h}</th>`).join('')}</tr>`;
+      const active=activeIndex();
+      $('#table-body').innerHTML=m.rows.map(row=>{
+        const cells=[`<td>${row.isTail?'<strong>':''}${row.label}${row.isTail?'</strong>':''}</td>`,`<td>${pct(row.survival)}</td>`,`<td>${row.retentionNext===null?'n/a':pct(row.retentionNext)}</td>`];
+        // On the tail row the PAV/CLV columns hold the average over everyone in the tail,
+        // which is what keeps the SUMPRODUCT honest. Mark it so nobody reads it as the
+        // value of a single 61-month lifetime, which is a different (smaller) number.
+        const avgMark=row.isTail?`<abbr class="avg-mark" title="Average across every lifetime of ${m.displayRows+1} months or more. A lifetime of exactly ${m.displayRows+1} months is worth ${money(row.clvAtLifetime)}, which is the point plotted on the value chart.">avg</abbr>`:'';
+        if(state.step>=2) cells.push(`<td class="col-new">${money(row.pav)}${avgMark}</td>`,`<td class="col-new">${money(row.clv)}${avgMark}</td>`);
+        if(state.step>=3) cells.push(`<td class="col-new">${pct(row.probability,2)}</td>`);
+        if(state.step>=4) cells.push(`<td class="col-new">${money(row.weightedClv)}</td>`);
+        return `<tr tabindex="0" data-index="${row.index}" aria-selected="${state.locked===row.index}" class="${row.isTail?'tail ':''}${active===row.index?'active ':''}${state.locked===row.index?'locked':''}">${cells.join('')}</tr>`;
+      }).join('');
+      const row=active===null?null:m.rows[active];
+      $('#selection').innerHTML=selectionHtml(row);
+    }
+    /* Gridlines at round numbers that fall inside the data range, rather than at even
+       fractions of it. The axes previously read $1,816 / $1,356 / $895 / $435 / -$25,
+       which is accurate but looks unfinished. Ticks are placed inside the existing
+       domain rather than expanding it, so no chart geometry moves. */
+    function niceTicks(min, max, target) {
+      const span = max - min;
+      if (!(span > 0) || !Number.isFinite(span)) return [min];
+      const rough = span / target;
+      const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+      // A 10% tolerance so a step just under the ideal spacing still wins. Without it a
+      // 0-41% axis jumps from a 0.1 step to a 0.2 step and drops to three gridlines.
+      const step = ([1, 2, 2.5, 5, 10].find(m => m * mag >= rough * 0.9) || 10) * mag;
+      const ticks = [];
+      for (let v = Math.ceil(min / step) * step; v <= max + step * 1e-9; v += step) {
+        ticks.push(Math.abs(v) < step * 1e-9 ? 0 : v);
+      }
+      return ticks.length ? ticks : [min, max];
+    }
+    function frame({W=720,H=285,left=62,right=22,top=22,bottom=45,xMin=0,xMax=60,yMin=0,yMax=1,xLabel='',yLabel=''}) {
+      const x=v=>left+(v-xMin)/(xMax-xMin)*(W-left-right);
+      const y=v=>top+(yMax-v)/(yMax-yMin)*(H-top-bottom);
+      const parts=[];
+      for(const v of niceTicks(yMin,yMax,4)){parts.push(`<line class="grid" x1="${left}" y1="${y(v)}" x2="${W-right}" y2="${y(v)}"/><text class="tick" x="${left-8}" y="${y(v)+4}" text-anchor="end">${yLabel==='Probability'?pct(v,0):yLabel.includes('$')?money(v,0):v.toFixed(2)}</text>`)}
+      for(const v of niceTicks(xMin,xMax,6)){parts.push(`<line class="grid" x1="${x(v)}" y1="${top}" x2="${x(v)}" y2="${H-bottom}"/><text class="tick" x="${x(v)}" y="${H-22}" text-anchor="middle">${xLabel.includes('CLV')?money(v,0):Math.round(v)}</text>`)}
+      parts.push(`<line class="axis" x1="${left}" y1="${H-bottom}" x2="${W-right}" y2="${H-bottom}"/><line class="axis" x1="${left}" y1="${top}" x2="${left}" y2="${H-bottom}"/><text class="chart-label" x="${(left+W-right)/2}" y="${H-4}" text-anchor="middle">${xLabel}</text><text class="chart-label" transform="translate(14 ${(top+H-bottom)/2}) rotate(-90)" text-anchor="middle">${yLabel}</text>`);
+      return {x,y,parts,W,H,left,right,top,bottom};
+    }
+    function pointAttrs(index,label) { return `class="chart-point" data-index="${index}" tabindex="0" role="button" aria-label="${label}"`; }
+    function renderSurvival(m) {
+      const f=frame({xMin:0,xMax:m.displayRows,yMin:0,yMax:1,xLabel:'Time since acquisition, t (months)',yLabel:'S(t)'});
+      const points=[];for(let t=0;t<=m.displayRows;t++)points.push([t,m.s[t]]);
+      f.parts.push(`<path d="${points.map((p,i)=>`${i?'L':'M'} ${f.x(p[0])} ${f.y(p[1])}`).join(' ')}" fill="none" stroke="${BLUE}" stroke-width="3"/>`);
+      for(const row of m.rows){const t=Math.min(row.startT,m.displayRows), isActive=activeIndex()===row.index;f.parts.push(`<circle ${pointAttrs(row.index,`Lifetime ${row.label}, survival ${pct(row.survival)}`)} cx="${f.x(t)}" cy="${f.y(row.survival)}" r="${isActive?7:3.5}" fill="${isActive?MAIZE:BLUE}" stroke="${isActive?'#8A6D00':'#fff'}" stroke-width="2"><title>Lifetime ${row.label}: S(${t}) = ${pct(row.survival)}</title></circle>`)}
+      $('#survival-chart').innerHTML=`<title>Beta-geometric survivor curve</title>${f.parts.join('')}`;
+    }
+    function renderValue(m) {
+      // This chart answers "what is ONE lifetime worth", so it reads clvAtLifetime and
+      // never the probability-weighted tail mean. The curve rises with diminishing steps
+      // toward a ceiling: each extra month adds one more discounted contribution.
+      const vals=m.rows.map(r=>r.clvAtLifetime), yMin=Math.min(-10,...vals), maxPlotted=Math.max(10,...vals);
+      const showCeiling=Number.isFinite(m.asymptoteClv)&&m.asymptoteClv<=maxPlotted*3;
+      const yMax=showCeiling?Math.max(maxPlotted,m.asymptoteClv):maxPlotted;
+      const f=frame({xMin:1,xMax:m.displayRows+1,yMin:yMin*1.08,yMax:yMax*1.05,xLabel:'Realized lifetime L (months)',yLabel:'CLV ($)'});
+      if(yMin<0&&yMax>0)f.parts.push(`<line x1="${f.left}" y1="${f.y(0)}" x2="${f.W-f.right}" y2="${f.y(0)}" stroke="${RED}" stroke-dasharray="5 4"/>`);
+      if(showCeiling)f.parts.push(`<line x1="${f.left}" y1="${f.y(m.asymptoteClv)}" x2="${f.W-f.right}" y2="${f.y(m.asymptoteClv)}" stroke="${BLUE}" stroke-width="2" stroke-dasharray="6 4" opacity=".55"/><text x="${f.W-f.right-4}" y="${f.y(m.asymptoteClv)-6}" text-anchor="end" fill="${BLUE}" font-size="10" font-weight="800">Ceiling ${money(m.asymptoteClv,0)}: never reached, however long they stay</text>`);
+      const pts=m.rows.map(r=>[r.isTail?m.displayRows+1:r.lifetime,r.clvAtLifetime]);
+      f.parts.push(`<path d="${pts.map((p,i)=>`${i?'L':'M'} ${f.x(p[0])} ${f.y(p[1])}`).join(' ')}" fill="none" stroke="${BLUE_MID}" stroke-width="3"/>`);
+      for(const row of m.rows){const xx=row.isTail?m.displayRows+1:row.lifetime,isActive=activeIndex()===row.index,color=state.step>=5&&row.clvAtLifetime<0?RED:BLUE_MID;f.parts.push(`<circle ${pointAttrs(row.index,`Lifetime ${row.label}, CLV ${money(row.clvAtLifetime)}`)} cx="${f.x(xx)}" cy="${f.y(row.clvAtLifetime)}" r="${isActive?7:3.5}" fill="${isActive?MAIZE:color}" stroke="${isActive?'#8A6D00':'#fff'}" stroke-width="2"><title>Lifetime ${row.label}${row.isTail?' (exactly '+(m.displayRows+1)+' months)':''}: CLV ${money(row.clvAtLifetime)}</title></circle>`)}
+      $('#value-chart').innerHTML=`<title>Customer lifetime value by realized lifetime</title>${f.parts.join('')}`;
+    }
+    function renderDistribution(m) {
+      const xMin=Math.min(...m.rows.map(r=>r.clv)),xMax=Math.max(...m.rows.map(r=>r.clv)),yMax=Math.max(...m.rows.map(r=>r.probability))*1.15;
+      const f=frame({W:720,H:300,xMin:xMin,xMax:xMax,yMin:0,yMax:yMax,xLabel:'CLV after CAC ($)',yLabel:'Probability'});
+      if(xMin<0&&xMax>0)f.parts.push(`<line x1="${f.x(0)}" y1="${f.top}" x2="${f.x(0)}" y2="${f.H-f.bottom}" stroke="${RED}" stroke-width="2" stroke-dasharray="5 4"/><text x="${f.x(0)+6}" y="${f.top+12}" fill="${RED}" font-size="10" font-weight="800">BREAK-EVEN</text>`);
+      if(state.step>=4)f.parts.push(`<line x1="${f.x(m.expectedClv)}" y1="${f.top}" x2="${f.x(m.expectedClv)}" y2="${f.H-f.bottom}" stroke="${MAIZE_DARK}" stroke-width="3"/><text x="${f.x(m.expectedClv)+6}" y="${f.top+26}" fill="#6E5600" font-size="10" font-weight="800">E(CLV) ${money(m.expectedClv)}</text>`);
+      for(const row of m.rows){const isActive=activeIndex()===row.index,color=state.step>=5&&row.clv<0?RED:BLUE,xx=f.x(row.clv),yy=f.y(row.probability);f.parts.push(`<line x1="${xx}" y1="${f.y(0)}" x2="${xx}" y2="${yy}" stroke="${color}" stroke-width="${isActive?7:4}" opacity="${isActive?1:.78}"/><circle ${pointAttrs(row.index,`Lifetime ${row.label}, CLV ${money(row.clv)}, probability ${pct(row.probability)}`)} cx="${xx}" cy="${yy}" r="${isActive?7:4}" fill="${isActive?MAIZE:color}" stroke="${isActive?'#8A6D00':'#fff'}" stroke-width="2"><title>Lifetime ${row.label}: ${money(row.clv)} with probability ${pct(row.probability,2)}</title></circle>`)}
+      $('#distribution-chart').innerHTML=`<title>Probability distribution of customer lifetime value</title>${f.parts.join('')}`;
+    }
+    function updateHighlight() {
+      const active=activeIndex();
+      $$('#table-body tr[data-index]').forEach(row=>{
+        const index=Number(row.dataset.index);
+        row.classList.toggle('active',active===index);
+        row.classList.toggle('locked',state.locked===index);
+        row.setAttribute('aria-selected',String(state.locked===index));
+      });
+      $$('svg [data-index]').forEach(point=>point.classList.toggle('is-active',Number(point.dataset.index)===active));
+      const row=active===null?null:state.model.rows[active];
+      $('#selection').innerHTML=selectionHtml(row);
+    }
+    function attachInteractions() {
+      $$('[data-index]').forEach(el=>{
+        const index=Number(el.dataset.index);
+        el.addEventListener('mouseenter',()=>{state.hover=index;updateHighlight();});
+        el.addEventListener('mouseleave',()=>{state.hover=null;updateHighlight();});
+        el.addEventListener('focus',()=>{state.hover=index;updateHighlight();});
+        el.addEventListener('blur',()=>{state.hover=null;updateHighlight();});
+        el.addEventListener('click',()=>lockRow(index));
+        el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();lockRow(index)}});
+      });
+    }
+    function lockRow(index){state.locked=state.locked===index?null:index;updateHighlight();if(state.locked!==null){const row=$(`#table-body tr[data-index="${state.locked}"]`);row?.scrollIntoView({block:'nearest',behavior:'smooth'})}}
+    function render() {
+      const model=DistributionMath.buildModel(inputs());state.model=model;
+      $$('[data-output]').forEach(out=>{const key=out.dataset.output;out.textContent=formats[key](model[key])});
+      renderMetrics(model);renderQuestion(model);
+      renderTable(model);renderSurvival(model);
+      if(state.step>=2)renderValue(model);
+      if(state.step>=3)renderDistribution(model);
+      $('#value-card').hidden=state.step<2;$('#distribution-card').hidden=state.step<3;$('#formula-card').hidden=state.step<4;$('#risk-card').hidden=state.step<5;
+      if(state.step>=4){
+        $('#route-a').textContent=money(model.expectedClv);
+        $('#route-a-note').textContent=`E(PAV) ${money(model.expectedPav)} less CAC ${money(model.cac,0)}`;
+        $('#route-b').textContent=money(model.distributionExpectedClv);
+        $('#route-b-note').textContent=`Weighted across ${model.rows.length} lifetime rows`;
+      }
+      if(state.step>=5){$('#risk-copy').innerHTML=`At CAC ${money(model.cac,0)}, <strong>${pct(model.unprofitableShare)}</strong> of customers never reach a CLV of zero or better. Expected CLV is ${money(model.expectedClv)}, but the median customer is worth ${money(model.medianClv)}. When you weigh an acquisition or retention idea, watch what it does to the left tail, not just the average.`}
+      attachInteractions();
+    }
+
+    $$('.step').forEach(btn=>btn.addEventListener('click',()=>setStep(btn.dataset.step)));
+    $$('[data-key]').forEach(input=>input.addEventListener('input',()=>{state.locked=null;render()}));
+    $('#settings-toggle').addEventListener('click',()=>{const panel=$('#advanced'),open=panel.hidden;panel.hidden=!open;$('#settings-toggle').setAttribute('aria-expanded',String(open));$('#settings-toggle').textContent=open?'Hide model settings':'Model settings'});
+    $('#reset').addEventListener('click',()=>{for(const [key,value] of Object.entries(defaults))$(`[data-key="${key}"]`).value=value;state.locked=null;render()});
+    $('#answer-toggle').addEventListener('click',()=>{const el=$('#answer-text'),open=el.hidden;el.hidden=!open;$('#answer-toggle').setAttribute('aria-expanded',String(open));$('#answer-toggle').textContent=open?'Hide explanation':'Check your thinking'});
+    document.addEventListener('keydown',e=>{if(!e.target.classList.contains('step')||!['ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const next=Math.min(5,Math.max(1,state.step+(e.key==='ArrowRight'?1:-1)));setStep(next);$(`.step[data-step="${next}"]`).focus()});
+    setStep(state.step);
+  })();
+  </script>
+</body>
+</html>

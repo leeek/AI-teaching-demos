@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Silicon Subject Lab</title>
+<!--
+  =====================================================================
+  SILICON SUBJECT LAB  —  Persona Builder kit, working v1
+  =====================================================================
+  THREE LAYERS (see toolkit/implementation-plan.md):
+    1. ENGINE        — course-agnostic mechanics (all code below the CONFIG).
+    2. COURSE_CONFIG — the ONE object a professor edits to retarget the tool.
+    3. PROJECT       — the student's own work, saved in localStorage.
+
+  To retarget for another course: edit COURSE_CONFIG only. Do not touch the
+  engine or the project state.
+
+  Free at point of use: no API keys, no network. The tool composes prompts
+  the student pastes into their OWN ChatGPT, and parses the pasted answers.
+  Runs offline from a file:// download.
+  =====================================================================
+-->
+<style>
+  :root{--blue:#00274c;--maize:#ffcb05;--bg:#f4f6f8;--card:#fff;--ink:#1a2430;--muted:#5b6a7a;--line:#dde3ea;--good:#1d7a3e;--warn:#b7791f;--bad:#b0322b;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:"Segoe UI",-apple-system,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;}
+  .topbar{background:var(--blue);color:#fff;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:20;border-bottom:4px solid var(--maize);}
+  .topbar h1{font-size:1.1rem;} .topbar .tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .rossmark{display:block;font-size:.64rem;letter-spacing:.16em;text-transform:uppercase;color:var(--maize);font-weight:700;margin-top:1px;}
+  .topbar input{border:none;border-radius:6px;padding:6px 8px;font-size:.85rem;}
+  .save{font-size:.72rem;color:#a9c4dd;}
+  .wrap{max-width:1000px;margin:0 auto;padding:18px 18px 90px;}
+  .stepper{display:flex;gap:6px;margin:16px 0;flex-wrap:wrap;}
+  .stepper button{flex:1;min-width:130px;border:1px solid var(--line);background:#fff;padding:9px 6px;border-radius:8px;cursor:pointer;font-size:.82rem;color:var(--muted);}
+  .stepper button .n{display:inline-block;width:19px;height:19px;border-radius:50%;background:var(--line);color:var(--ink);font-weight:700;font-size:.72rem;line-height:19px;margin-right:5px;}
+  .stepper button.active{border-color:var(--blue);color:var(--blue);font-weight:600;}
+  .stepper button.active .n{background:var(--maize);}
+  .stepper button.locked{opacity:.55;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:16px;}
+  .card h2{font-size:1.08rem;color:var(--blue);margin-bottom:8px;display:inline-block;padding-bottom:4px;border-bottom:3px solid var(--maize);} .card h3{font-size:.92rem;color:var(--blue);margin:14px 0 6px;}
+  .sub{color:var(--muted);font-size:.88rem;margin-bottom:12px;}
+  .btn{background:var(--blue);color:#fff;border:none;border-radius:7px;padding:8px 15px;font-size:.85rem;cursor:pointer;font-weight:600;}
+  .btn.sec{background:#e8eef5;color:var(--blue);} .btn.gd{background:var(--good);} .btn.sm{padding:5px 10px;font-size:.78rem;} .btn:disabled{background:#9aa7b5;cursor:not-allowed;}
+  .btn.warn{background:#f7e7e7;color:var(--bad);}
+  input[type=text],input[type=number],textarea,select{border:1px solid var(--line);border-radius:7px;padding:7px 9px;font-size:.85rem;font-family:inherit;background:#fff;}
+  textarea{width:100%;min-height:70px;resize:vertical;}
+  label{font-size:.8rem;font-weight:600;color:var(--ink);display:block;margin:6px 0 3px;}
+  .dimcard{border:1px solid var(--line);border-radius:9px;padding:12px;margin-bottom:10px;background:#fbfcfe;}
+  .dimrow{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;}
+  .dimrow>div{flex:1;min-width:120px;} .dimrow .params{flex:2;min-width:200px;display:flex;gap:6px;flex-wrap:wrap;}
+  .params input{width:82px;}
+  .cls-demo{color:var(--blue);} .cls-behavior{color:#8a6410;} .cls-psycho{color:#5b3a86;} .cls-need{color:var(--good);}
+  .badge{font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:4px;}
+  .b-demo{background:#e8eef5;color:var(--blue);} .b-behavior{background:#fff3d6;color:#8a6410;} .b-psycho{background:#efe6f7;color:#5b3a86;} .b-need{background:#e6f4ea;color:var(--good);}
+  .callout{border-left:4px solid var(--maize);background:#fffbe9;padding:10px 13px;border-radius:0 8px 8px 0;font-size:.85rem;margin:12px 0;} .callout.red{border-color:var(--bad);background:#fdf1f0;} .callout.green{border-color:var(--good);background:#f0f9f2;} .callout b{color:var(--blue);}
+  .gate{display:flex;align-items:center;gap:12px;background:#f0f3f7;border:1px dashed var(--blue);border-radius:8px;padding:11px 14px;margin-top:14px;font-size:.86rem;flex-wrap:wrap;}
+  .chk{font-weight:700;} .chk.ok{color:var(--good);} .chk.no{color:var(--bad);}
+  .hist{display:flex;align-items:flex-end;gap:2px;height:60px;margin-top:4px;}
+  .hist .b{flex:1;background:var(--blue);border-radius:2px 2px 0 0;min-height:2px;} .histlabel{font-size:.66rem;color:var(--muted);}
+  .prompt{background:#101820;color:#d7e3ee;font-family:ui-monospace,Consolas,monospace;font-size:.78rem;padding:12px 14px;border-radius:8px;white-space:pre-wrap;margin:6px 0;}
+  table{width:100%;border-collapse:collapse;font-size:.84rem;margin:6px 0;} th{background:#f0f3f7;text-align:left;padding:7px 9px;color:var(--blue);font-size:.78rem;} td{padding:7px 9px;border-top:1px solid var(--line);vertical-align:top;}
+  .tray{display:flex;gap:8px;flex-wrap:wrap;} .tok{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:.78rem;cursor:pointer;background:#fff;min-width:96px;}
+  .tok.active{border-color:var(--blue);box-shadow:0 1px 4px rgba(0,39,76,.2);} .tok b{display:block;color:var(--blue);}
+  .tok .st{font-size:.66rem;color:var(--muted);display:block;margin-top:2px;}
+  .qacard{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;background:#fbfcfe;font-size:.84rem;}
+  .flag{border:1px solid var(--warn);background:#fff8ec;border-radius:8px;padding:11px 13px;margin:10px 0;font-size:.85rem;}
+  .bars{display:grid;grid-template-columns:120px 1fr;gap:3px 8px;align-items:center;font-size:.78rem;margin:6px 0;}
+  .bar{height:15px;background:#e6ebf1;border-radius:3px;position:relative;} .bar span{position:absolute;left:0;top:0;bottom:0;background:var(--blue);border-radius:3px;} .bar i{position:absolute;right:5px;font-style:normal;font-size:.7rem;color:#333;}
+  .hidden{display:none;} .step{display:none;} .step.on{display:block;}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;} .modal.on{display:flex;}
+  .modal .box{background:#fff;border-radius:10px;max-width:760px;width:100%;max-height:85vh;overflow:auto;padding:20px;}
+  .foot{font-size:.78rem;color:var(--muted);border-top:1px solid var(--line);margin-top:20px;padding-top:12px;}
+  .pill{font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:20px;background:#e8eef5;color:var(--blue);margin-left:6px;}
+  .exgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;} @media(max-width:720px){.exgrid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div><h1 id="topTitle">Silicon Subject Lab</h1><span class="rossmark" id="topCourse"></span></div>
+  <div class="tools">
+    <span>Brand:</span><input id="brandInput" type="text" placeholder="e.g. Mayo Clinic" style="width:150px">
+    <button class="btn sec sm" onclick="openInspect()">Inspect prompts</button>
+    <button class="btn sec sm" onclick="exportJSON()">Save project</button>
+    <button class="btn sec sm" onclick="document.getElementById('importFile').click()">Merge from file</button>
+    <input id="importFile" type="file" accept="application/json" class="hidden" onchange="importJSON(event)">
+    <button class="btn warn sm" onclick="resetProject()">Reset</button>
+    <span class="save" id="saveInd">saved</span>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="stepper" id="stepper"></div>
+
+  <!-- STAGE 1 -->
+  <section class="step on" id="s1">
+    <div class="card">
+      <h2>Stage 1: Define your target population</h2>
+      <p class="sub">Who does this brand actually serve? Describe those people as distributions, not labels. Demographics alone will not unlock the next stage. You also need at least one <b>category behavior</b>, one <b>psychographic</b>, and one <b>laddered higher-order need</b>.</p>
+      <div><button class="btn sec sm" onclick="toggleExample()">Show worked example (read-only)</button></div>
+      <div id="exampleBox" class="callout hidden"></div>
+      <h3>Your population</h3>
+      <div id="dimList"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">
+        <button class="btn sec sm" onclick="addDim('demo')">+ Demographic</button>
+        <button class="btn sec sm" onclick="addDim('behavior')">+ Category behavior</button>
+        <button class="btn sec sm" onclick="addDim('psycho')">+ Psychographic</button>
+        <button class="btn sec sm" onclick="addDim('need')">+ Higher-order need</button>
+      </div>
+      <div id="suggRow" style="margin-top:8px;font-size:.8rem;color:var(--muted);"></div>
+      <div class="callout" style="margin-top:12px"><b>Where do the numbers come from?</b> Your secondary research: annual reports, Mintel, census data, what the brand discloses about its customers. These are assumptions, and your appendix reports them, so be ready to defend each one. Use the preview below to check that the shape matches what you know.</div>
+      <div id="composePreview"></div>
+      <div class="gate" id="gateBox"></div>
+    </div>
+  </section>
+
+  <!-- STAGE 2 -->
+  <section class="step" id="s2">
+    <div class="card">
+      <h2>Stage 2: Draw a subject</h2>
+      <p class="sub">Attributes are drawn <b>in your browser</b> from your Stage 1 distributions, without replacement. ChatGPT is never asked to invent a person. The tool then composes a backstory prompt with an <b>anchor line</b> that keeps this subject from drifting toward the average.</p>
+      <button class="btn" onclick="drawSubject()">Draw a new subject</button>
+      <div id="drawArea"></div>
+    </div>
+  </section>
+
+  <!-- STAGE 3 -->
+  <section class="step" id="s3">
+    <div class="card">
+      <h2>Stage 3: Interview</h2>
+      <p class="sub">Write your questions once. They are reused for every subject, so answers can be compared and aggregated. For each question the tool composes a prompt with a required answer format. Paste it into that subject's ChatGPT thread, then paste the answer back here.</p>
+      <h3>Your instruments</h3>
+      <div id="instrList"></div>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:6px;">
+        <div style="flex:2;min-width:220px;"><label>New question</label><input id="qText" type="text" placeholder="e.g. What comes to mind when you think of {{brand}}?" style="width:100%"></div>
+        <div style="flex:1;min-width:130px;"><label>Type</label><select id="qType"></select></div>
+        <button class="btn sec sm" onclick="addInstrument()">Add</button>
+      </div>
+      <p class="sub" style="margin-top:6px">Type {{brand}} in a question to insert the brand name from the top bar. Leave it out when you want unaided recall, for example "which hospitals come to mind first?"</p>
+      <hr style="border:none;border-top:1px solid var(--line);margin:16px 0;">
+      <h3>Interview subject <span id="curSubjLbl" style="color:var(--muted);font-weight:400;font-size:.82rem"></span></h3>
+      <div id="interviewArea"><p class="sub">Draw a subject in Stage 2 first.</p></div>
+    </div>
+  </section>
+
+  <!-- STAGE 4 -->
+  <section class="step" id="s4">
+    <div class="card">
+      <h2>Stage 4: Build the sample and watch the variance</h2>
+      <p class="sub">Repeat the draw and interview loop. A comfortable sample is 20 or more. The monitor below flags when answers start collapsing toward one value, which is the mean regression problem from lecture. Its thresholds are heuristics, not a human benchmark.</p>
+      <h3>Sample tray <span id="sampleCount" style="color:var(--muted);font-weight:400;font-size:.82rem"></span></h3>
+      <div class="tray" id="sampleTray"></div>
+      <div id="varMonitor"></div>
+    </div>
+  </section>
+
+  <!-- STAGE 5 -->
+  <section class="step" id="s5">
+    <div class="card">
+      <h2>Stage 5: Export for the audit</h2>
+      <p class="sub">Findings go in the report body. Instruments and method go in the appendix. Everything exports as plain text and CSV. Persona bios are not exported, because the audit reports aggregated evidence, not characters.</p>
+      <div id="quotePick"></div>
+      <div class="exgrid">
+        <div>
+          <h3>Findings pack (body)</h3>
+          <button class="btn sm" onclick="copyText('findingsOut')">Copy</button>
+          <button class="btn sec sm" onclick="download('findings.txt','findingsOut')">Download</button>
+          <textarea id="findingsOut" style="min-height:240px;font-family:ui-monospace,Consolas,monospace;font-size:.75rem;margin-top:6px;"></textarea>
+        </div>
+        <div>
+          <h3>Method appendix pack</h3>
+          <button class="btn sm" onclick="copyText('appendixOut')">Copy</button>
+          <button class="btn sec sm" onclick="download('appendix.txt','appendixOut')">Download</button>
+          <textarea id="appendixOut" style="min-height:240px;font-family:ui-monospace,Consolas,monospace;font-size:.75rem;margin-top:6px;"></textarea>
+        </div>
+      </div>
+      <button class="btn sec sm" style="margin-top:10px" onclick="buildExports()">Regenerate exports</button>
+    </div>
+  </section>
+
+  <div class="foot" id="footNote"></div>
+</div>
+
+<div class="modal" id="inspectModal"><div class="box">
+  <div style="display:flex;justify-content:space-between;align-items:center;"><h2 style="color:var(--blue)">Prompt templates (editable)</h2><button class="btn sec sm" onclick="closeInspect()">Close</button></div>
+  <p class="sub">Every prompt the tool composes comes from these templates. Tokens in {{braces}} get filled in per subject and per question. Nothing is hidden. Read them, and edit them if you disagree.</p>
+  <div id="inspectBody"></div>
+</div></div>
+
+<script>
+/* =====================================================================
+   LAYER 2 — COURSE_CONFIG. Edit ONLY this object to retarget the tool.
+   ===================================================================== */
+const COURSE_CONFIG = {
+  courseLabel:"Silicon Subject Lab",
+  course:"Michigan Ross · WMBA633 Strategic Brand Management",
+  tagline:"Scaffolded silicon sampling for the brand audit's primary consumer research.",
+
+  // Naked segment labels that get rejected at Stage 1 (edit freely).
+  lazyBlocklist:["gen z","genz","millennial","millennials","boomer","boomers","gen x","gen y",
+    "busy mom","busy moms","soccer mom","students","young people","old people","everyone",
+    "general public","the masses","average consumer","normal people","mainstream"],
+
+  // Gate: minimum demographics + which non-demographic classes are required.
+  gatePolicy:{ minDemographic:3, requiredClasses:["behavior","psycho","need"], psychoTarget:3 },
+
+  // One-click starters. Katherine named these on the call: "media usage, age
+  // distribution, gender distribution, income distribution, rough geography,
+  // some kind of higher order needs."
+  suggestedDims:[
+    {name:"Age", cls:"demo", distType:"uniform"},
+    {name:"Gender", cls:"demo", distType:"categorical"},
+    {name:"Income", cls:"demo", distType:"lognormal"},
+    {name:"Geography", cls:"demo", distType:"categorical"},
+    {name:"Media usage", cls:"psycho", distType:"categorical"}
+  ],
+
+  dimensionClasses:{
+    demo:{label:"demographic", badge:"b-demo"},
+    behavior:{label:"category behavior", badge:"b-behavior"},
+    psycho:{label:"psychographic", badge:"b-psycho"},
+    need:{label:"higher-order need (laddered)", badge:"b-need"}
+  },
+
+  // Read-only illustration (deck Step 1). Never becomes the student's data.
+  workedExample:{
+    brand:"Mayo Clinic",
+    rows:[
+      ["Age","demographic","Uniform, 18 to 65 (every age equally likely)"],
+      ["Gender","demographic","Categorical: 49% female, 48% male, 3% nonbinary"],
+      ["Income","demographic","Log-normal: typical (median) $36K, top 10% above $90K"],
+      ["Geography","demographic","Categorical: Midwest 40%, South 25%, Northeast 20%, West 15%"],
+      ["Patient status","category behavior","Categorical: 30% Mayo patient, 70% caregiver of a patient"],
+      ["Media usage","psychographic","Categorical, primary channel: health apps 35%, Facebook groups 25%, TV news 25%, print 15%"],
+      ["Health anxiety","psychographic","Scale of 1 to 7: typical subject around 4, most fall between 3 and 6 (mean 4.2, SD 1.4)"],
+      ["Higher-order need","higher-order need (laddered)","expert care → certainty → feeling in control"]
+    ]
+  },
+
+  // Instruments a student can add. type drives prompt format + variance handling.
+  instrumentTypes:[
+    {type:"open", label:"Open-ended"},
+    {type:"association", label:"Word association (5 words)"},
+    {type:"ladder", label:"Laddering probe (A→B→V)"},
+    {type:"scale5", label:"Rating scale 1–5"},
+    {type:"scale7", label:"Rating scale 1–7"},
+    {type:"wtp", label:"Willingness to pay (%)"}
+  ],
+
+  // Prompt templates. {{tokens}} filled by the engine.
+  prompts:{
+    backstory:
+"Create a backstory for this research subject. Keep it to 3 short sentences. Consider personality, income, technology use, family, and preferences.\n\nSubject: {{attrs}}.\n\nANCHOR: keep this person's attitudes consistent with {{anchors}}. This person is NOT an average consumer; do not soften their views toward the middle.",
+    rolePreamble:
+"Pretend to be the following person filling in a research survey online. Do not mention that you are an AI and always stay in character. Answer as this person would, in their own voice. Do not repeat your backstory in your answers. Never refuse a question or break character: if this person would be unsure, answer the way an unsure person would, and still give a single number when a rating is asked.\n\n{{attrs}}\nBackstory: {{backstory}}\nANCHOR (stay consistent): {{anchors}}",
+    questionWrap:
+"{{roleblock}}Question: {{question}}\n\nAnswer EXACTLY in this format:\n{{format}}",
+    probe:"You said: \"{{prior}}\". Why does that matter to you? Answer in the same ANSWER/RATING/WORDS format."
+  },
+
+  exportPreamble:"Synthetic (silicon) sample generated with the Silicon Subject Lab. Not human data. Read the limitations note before citing.",
+  footNote:"Teaching note: the tool is transparent on purpose. Every prompt is visible and editable (Inspect prompts), every draw happens in your browser, and the requirements it enforces (the locked stages, the variance flags) are part of the lesson."
+};
+
+/* =====================================================================
+   LAYER 3 — PROJECT (the student's work). Persisted in localStorage.
+   ===================================================================== */
+const BLANK = ()=>({ brand:"", populationSpec:[], subjects:[], instruments:[], flags:[], quoteSel:{}, curSubject:null, seq:0 });
+let P = BLANK();
+const LSKEY = "silicon_subject_lab_v1";
+
+/* =====================================================================
+   ENGINE — course-agnostic. Nothing below references Burson specifically.
+   ===================================================================== */
+const $ = id=>document.getElementById(id);
+const CC = COURSE_CONFIG;
+
+function save(){ localStorage.setItem(LSKEY, JSON.stringify(P)); const s=$("saveInd"); if(s){s.textContent="saved ✓"; setTimeout(()=>s.textContent="saved",900);} }
+function load(){ try{ const r=localStorage.getItem(LSKEY); if(r) P=Object.assign(BLANK(), JSON.parse(r)); }catch(e){} }
+
+/* ---- sampling ---- */
+function randNormal(m,sd){ let u=Math.random()||1e-9,v=Math.random()||1e-9; return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)*sd+m; }
+function randLognormal(mu,sig){ return Math.exp(randNormal(mu,sig)); }
+function randUniform(a,b){ return a+Math.random()*(b-a); }
+function drawCategorical(cats){ // cats:[{label,pct}]
+  const tot=cats.reduce((s,c)=>s+(+c.pct||0),0)||1; let r=Math.random()*tot,acc=0;
+  for(const c of cats){ acc+=(+c.pct||0); if(r<=acc) return c.label; } return cats[cats.length-1]?.label||"";
+}
+function drawValue(d){
+  const p=d.params||{};
+  if(d.distType==="uniform"){ return Math.round(randUniform(+p.min||0,+p.max||1)); }
+  if(d.distType==="normal"){ return Math.round(randNormal(+p.mean||0,+p.sd||1)*10)/10; }
+  if(d.distType==="scale"){ const v=Math.round(randNormal(+p.mean||4,+p.sd||1)); return Math.min(7,Math.max(1,v)); }
+  if(d.distType==="lognormal"){
+    if(p.mu!=null && p.mu!==""){ return Math.round(randLognormal(+p.mu,+p.sigma||1)); } // legacy μ/σ projects
+    const med=Math.max(+p.median||1,0.01), hi=Math.max(+p.p90||med*2, med*1.01);
+    const mu=Math.log(med), sigma=Math.max(0.05, Math.log(hi/med)/1.2816); // 1.2816 = z at the 90th percentile
+    return Math.round(randLognormal(mu,sigma));
+  }
+  if(d.distType==="categorical"){ return drawCategorical(p.cats||[]); }
+  if(d.distType==="ladder"){ return p.value||"(need)"; }
+  return "";
+}
+
+/* ---- gate ---- */
+function completeDim(d){ // a dimension counts only if its distribution is filled in
+  const p=d.params||{};
+  if(!d.name||isBlocked(d.name)) return false;
+  if(d.distType==="uniform") return p.min!=="" && p.max!=="" && p.min!=null && p.max!=null;
+  if(d.distType==="normal"||d.distType==="scale") return p.mean!=null&&p.mean!=="" && p.sd!=null&&p.sd!=="";
+  if(d.distType==="lognormal") return (+p.median>0 && +p.p90>+p.median) || (p.mu!=null && p.mu!=="");
+  if(d.distType==="categorical") return (p.cats||[]).length>=2 && Math.abs((p.cats||[]).reduce((s,c)=>s+(+c.pct||0),0)-100)<0.5;
+  if(d.distType==="ladder") return !!(p.value&&p.value.includes("→"));
+  return false;
+}
+function gateStatus(){
+  const spec=P.populationSpec;
+  const by=cls=>spec.filter(d=>d.cls===cls&&completeDim(d)).length;
+  const demo=by("demo"), beh=by("behavior"), psy=by("psycho"), need=by("need");
+  const g=CC.gatePolicy;
+  const checks=[
+    {k:"demo", ok:demo>=g.minDemographic, txt:`${g.minDemographic}+ demographic (${demo})`},
+    {k:"behavior", ok:beh>=1, txt:`1+ category behavior (${beh})`},
+    {k:"psycho", ok:psy>=1, txt:`1+ psychographic (${psy}${g.psychoTarget?`, aim for ${g.psychoTarget}`:""})`},
+    {k:"need", ok:need>=1, txt:`1+ laddered need (${need})`}
+  ];
+  return { checks, open: checks.every(c=>c.ok) };
+}
+function isBlocked(name){ const n=(name||"").toLowerCase().trim(); return CC.lazyBlocklist.some(b=> n===b || n.split(/\s+/).join(" ")===b || (b.length>4 && n.includes(b)) ); }
+
+/* ---- Stage 1 render ---- */
+const DIST_BY_CLASS={ demo:["uniform","normal","lognormal","categorical"], behavior:["categorical"], psycho:["normal","scale","categorical"], need:["ladder"] };
+function addDim(cls){
+  const def = cls==="need" ? {distType:"ladder"} : cls==="behavior" ? {distType:"categorical"} : cls==="psycho" ? {distType:"normal"} : {distType:"normal"};
+  P.populationSpec.push({ id:"d"+(++P.seq), name:"", cls, distType:def.distType, params:defaultParams(def.distType) });
+  save(); renderDims();
+}
+function defaultParams(t){
+  if(t==="uniform") return {min:"",max:""};
+  if(t==="normal"||t==="scale") return {mean:"",sd:""};
+  if(t==="lognormal") return {median:"",p90:""};
+  if(t==="categorical") return {cats:[{label:"",pct:""},{label:"",pct:""}]};
+  if(t==="ladder") return {value:""};
+  return {};
+}
+function renderDims(){
+  const host=$("dimList"); host.innerHTML="";
+  if(!P.populationSpec.length){ host.innerHTML="<p class='sub'>No dimensions yet. Use the quick-add buttons above or define your own. Start from what makes someone a likely customer of this brand.</p>"; }
+  P.populationSpec.forEach(d=>{
+    const cl=CC.dimensionClasses[d.cls];
+    const div=document.createElement("div"); div.className="dimcard";
+    const blocked = d.name && isBlocked(d.name);
+    div.innerHTML=`
+      <div class="dimrow">
+        <div><label>Dimension <span class="badge ${cl.badge}">${cl.label}</span></label>
+          <input type="text" value="${esc(d.name)}" placeholder="name" oninput="setDim('${d.id}','name',this.value)" style="width:100%">
+        </div>
+        <div><label>Distribution</label>
+          <select onchange="setDimDist('${d.id}',this.value)">${DIST_BY_CLASS[d.cls].map(t=>`<option value="${t}"${d.distType===t?" selected":""}>${t}</option>`).join("")}</select>
+        </div>
+        <div class="params" id="params_${d.id}">${paramsHTML(d)}</div>
+        <div style="flex:0"><button class="btn warn sm" onclick="delDim('${d.id}')">✕</button></div>
+      </div>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${distHint(d.distType)}</div>
+      <div id="blk_${d.id}">${blocked?blkHTML(d.name):""}</div>`;
+    host.appendChild(div);
+  });
+  renderPreview(); renderGate(); refreshStepper();
+}
+function paramsHTML(d){
+  const p=d.params||{};
+  if(d.distType==="uniform") return inp(d.id,"min","min",p.min)+inp(d.id,"max","max",p.max);
+  if(d.distType==="normal"||d.distType==="scale") return inp(d.id,"mean","mean",p.mean)+inp(d.id,"sd","SD",p.sd);
+  if(d.distType==="lognormal"){
+    if(p.mu!=null && p.mu!=="") return inp(d.id,"mu","μ (legacy)",p.mu)+inp(d.id,"sigma","σ (legacy)",p.sigma);
+    return inp(d.id,"median","typical (median)",p.median)+inp(d.id,"p90","90th percentile",p.p90);
+  }
+  if(d.distType==="ladder") return `<input type="text" style="flex:1;min-width:200px" value="${esc(p.value||"")}" placeholder="attribute → benefit → value" oninput="setParam('${d.id}','value',this.value)">`;
+  if(d.distType==="categorical"){
+    const rows=(p.cats||[]).map((c,i)=>`<span style="display:flex;gap:3px;margin:2px 0"><input type="text" style="width:100px" value="${esc(c.label)}" placeholder="label" oninput="setCat('${d.id}',${i},'label',this.value)"><input type="number" style="width:56px" value="${c.pct}" placeholder="%" oninput="setCat('${d.id}',${i},'pct',this.value)"></span>`).join("");
+    return `<div style="flex:1">${rows}<button class="btn sec sm" onclick="addCat('${d.id}')">+ option</button></div>`;
+  }
+  return "";
+}
+function inp(id,key,ph,v){ return `<span><label style="font-size:.66rem">${ph}</label><input type="number" value="${v===undefined||v===null?"":v}" placeholder="${ph}" oninput="setParam('${id}','${key}',this.value)"></span>`; }
+function distHint(t){
+  if(t==="uniform") return "Every value between min and max is equally likely.";
+  if(t==="normal") return "Mean is the typical value. About 95% of draws land within 2 SDs of it.";
+  if(t==="scale") return "An attitude on a 1 to 7 scale. Mean is where the typical person sits; SD is how much people differ. Draws are whole numbers from 1 to 7.";
+  if(t==="lognormal") return "Enter the typical (median) value and where the top 10% starts. Skews high, like real incomes. Check the preview.";
+  if(t==="categorical") return "Options with percentages that total 100.";
+  if(t==="ladder") return "Attribute → benefit → value. For example: expert care → certainty → feeling in control.";
+  return "";
+}
+function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;"); }
+function getDim(id){ return P.populationSpec.find(d=>d.id===id); }
+function blkHTML(name){ return `<div class="callout red" style="margin:8px 0 0"><b>"${esc(name)}" sounds like a label, not a segmentation.</b> What makes this audience different from everyone else in the category? Describe the trait, not the group.</div>`; }
+function setDim(id,k,v){
+  const d=getDim(id); d[k]=v; save();
+  if(k==="name"){
+    // update the warning in place; a full re-render here would steal focus on every keystroke
+    const b=$("blk_"+id); if(b) b.innerHTML = (v&&isBlocked(v))? blkHTML(v):"";
+    renderPreview();
+  }
+  renderGate();
+}
+function setDimDist(id,t){ const d=getDim(id); d.distType=t; d.params=defaultParams(t==="scale"?"normal":t); save(); renderDims(); }
+function setParam(id,k,v){ const d=getDim(id); d.params[k]=v; save(); renderPreview(); renderGate(); }
+function setCat(id,i,k,v){ const d=getDim(id); d.params.cats[i][k]=v; save(); renderPreview(); renderGate(); }
+function addCat(id){ getDim(id).params.cats.push({label:"",pct:""}); save(); renderDims(); }
+function delDim(id){ P.populationSpec=P.populationSpec.filter(d=>d.id!==id); save(); renderDims(); }
+function addSuggested(i){
+  const s=CC.suggestedDims[i]; if(!s) return;
+  P.populationSpec.push({ id:"d"+(++P.seq), name:s.name, cls:s.cls, distType:s.distType, params:defaultParams(s.distType) });
+  save(); renderDims();
+}
+function renderSuggested(){
+  const host=$("suggRow"); if(!host||!CC.suggestedDims) return;
+  host.innerHTML="Quick add a common dimension (the distribution is still yours to define): "+CC.suggestedDims.map((s,i)=>`<button class="btn sec sm" onclick="addSuggested(${i})">${esc(s.name)}</button>`).join(" ");
+}
+
+function renderPreview(){
+  const host=$("composePreview");
+  const usable=P.populationSpec.filter(d=>d.name && ["uniform","normal","lognormal","categorical","scale"].includes(d.distType));
+  if(!usable.length){ host.innerHTML=""; return; }
+  let html="<h3>Sample composition preview <span style='font-weight:400;color:var(--muted);font-size:.78rem'>(500 practice draws, so you can see who your distributions actually produce)</span></h3><div style='display:grid;grid-template-columns:1fr 1fr;gap:14px'>";
+  usable.forEach(d=>{
+    const draws=[]; for(let i=0;i<500;i++) draws.push(drawValue(d));
+    html+=`<div><div style="font-size:.8rem;font-weight:600;color:var(--blue)">${esc(d.name)}</div>${histogram(d,draws)}</div>`;
+  });
+  host.innerHTML=html+"</div>";
+}
+function histogram(d,draws){
+  if(d.distType==="categorical"){
+    const counts={}; draws.forEach(v=>counts[v]=(counts[v]||0)+1);
+    const keys=Object.keys(counts); const max=Math.max(...Object.values(counts));
+    return `<div class="hist">${keys.map(k=>`<div class="b" style="height:${Math.round(100*counts[k]/max)}%" title="${esc(k)}: ${Math.round(100*counts[k]/500)}%"></div>`).join("")}</div><div class="histlabel">${keys.map(esc).join(" · ")}</div>`;
+  }
+  const nums=draws.map(Number); const lo=Math.min(...nums),hi=Math.max(...nums); const bins=8; const arr=new Array(bins).fill(0);
+  nums.forEach(n=>{ let idx=Math.floor((n-lo)/((hi-lo)||1)*bins); if(idx>=bins)idx=bins-1; if(idx<0)idx=0; arr[idx]++; });
+  const max=Math.max(...arr);
+  return `<div class="hist">${arr.map(c=>`<div class="b" style="height:${Math.round(100*c/max)}%"></div>`).join("")}</div><div class="histlabel">${Math.round(lo)} to ${Math.round(hi)}</div>`;
+}
+function renderGate(){
+  const g=gateStatus(); const box=$("gateBox");
+  box.innerHTML = `<span style="font-size:1.2rem">${g.open?"🔓":"🔒"}</span> `+
+    g.checks.map(c=>`<span class="chk ${c.ok?'ok':'no'}">${c.ok?'✓':'✗'} ${c.txt}</span>`).join(" &nbsp; ")+
+    (g.open?` &nbsp; <b style="color:var(--good)">Stage 2 unlocked.</b>`:` &nbsp; <span style="color:var(--muted)">Fill the required dimensions to unlock Stage 2.</span>`);
+  refreshStepper();
+}
+function toggleExample(){
+  const b=$("exampleBox"); b.classList.toggle("hidden");
+  if(!b.classList.contains("hidden")){
+    const w=CC.workedExample;
+    b.innerHTML=`<b>Worked example (illustration only, ${esc(w.brand)}):</b><table><tr><th>Dimension</th><th>Type</th><th>Spec</th></tr>${w.rows.map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join("")}</table><span style="font-size:.78rem;color:var(--muted)">This example is read-only. Build your own population above.</span>`;
+  }
+}
+
+/* ---- Stage 2 ---- */
+function drawSubject(){
+  if(!gateStatus().open){ alert("Complete the Stage 1 requirements first."); return; }
+  const spec=P.populationSpec.filter(completeDim); // only fully specified dimensions are sampled
+  let attrs={},anchors={},combo,tries=0;
+  do{ attrs={}; spec.forEach(d=>attrs[d.name]=drawValue(d)); combo=spec.filter(d=>d.distType==="categorical").map(d=>attrs[d.name]).join("|"); tries++; }
+  while(tries<20 && P.subjects.some(s=>s._combo===combo && combo));
+  spec.filter(d=>d.cls==="psycho"||d.cls==="need").forEach(d=>anchors[d.name]=attrs[d.name]);
+  const subj={ id:"S"+(++P.seq), _combo:combo, attrs, anchors, backstory:"", interview:[], status:"draft" };
+  P.subjects.push(subj); P.curSubject=subj.id; save(); renderDraw(subj); refreshStepper();
+}
+function dimDist(name){ const d=P.populationSpec.find(x=>x.name===name); return d?d.distType:""; }
+function attrVal(k,v){ return dimDist(k)==="scale" ? `${v} of 7` : v; }
+function attrsString(s){ return Object.entries(s.attrs).map(([k,v])=>`${k}: ${attrVal(k,v)}`).join(", "); }
+function anchorsString(s){ return Object.entries(s.anchors).map(([k,v])=>`${k} = ${attrVal(k,v)}`).join("; ")||"(no attitude anchors set)"; }
+function fill(tpl,map){ return tpl.replace(/{{(\w+)}}/g,(m,k)=> (k in map)?map[k]:m); }
+function backstoryPrompt(s){ return fill(CC.prompts.backstory,{attrs:attrsString(s),anchors:anchorsString(s)}); }
+function renderDraw(s){
+  const host=$("drawArea");
+  host.innerHTML=`
+    <div class="callout"><b>Subject ${s.id}</b>, drawn locally: ${esc(attrsString(s))}</div>
+    <h3>Backstory prompt <span style="font-weight:400;color:var(--muted);font-size:.78rem">(paste into a <b>new</b> ChatGPT thread for this subject)</span></h3>
+    <div class="prompt" id="bsPrompt">${esc(backstoryPrompt(s))}</div>
+    <button class="btn sm" onclick="copyPrompt('${s.id}')">Copy prompt</button>
+    <label style="margin-top:10px">Paste the 3-sentence backstory back here</label>
+    <textarea id="bsBack" oninput="setBackstory('${s.id}',this.value)" placeholder="Paste ChatGPT's backstory...">${esc(s.backstory)}</textarea>
+    <div class="callout green">Keep that ChatGPT thread open. Every interview question for ${s.id} goes into the <b>same</b> thread, so the subject stays consistent with itself.</div>`;
+}
+function copyPrompt(id){ const s=P.subjects.find(x=>x.id===id); navigator.clipboard?.writeText(backstoryPrompt(s)); toast("Prompt copied"); }
+function setBackstory(id,v){ const s=P.subjects.find(x=>x.id===id); s.backstory=v; if(v&&s.status==="draft")s.status="interviewing"; save(); }
+
+/* ---- Stage 3 ---- */
+function renderInstrTypes(){ $("qType").innerHTML=CC.instrumentTypes.map(t=>`<option value="${t.type}">${t.label}</option>`).join(""); }
+function addInstrument(){ const t=$("qText").value.trim(); if(!t)return; P.instruments.push({id:"q"+(++P.seq),type:$("qType").value,text:t}); $("qText").value=""; save(); renderInstruments(); }
+function delInstrument(id){ P.instruments=P.instruments.filter(q=>q.id!==id); save(); renderInstruments(); }
+function renderInstruments(){
+  const host=$("instrList");
+  host.innerHTML = P.instruments.length? P.instruments.map(q=>{
+    const lbl=CC.instrumentTypes.find(t=>t.type===q.type)?.label||q.type;
+    return `<div class="qacard"><b>${esc(fillBrand(q.text))}</b> <span class="pill">${lbl}</span> <button class="btn warn sm" style="float:right" onclick="delInstrument('${q.id}')">✕</button></div>`;
+  }).join("") : "<p class='sub'>No questions yet. Start with the methods from class: free association to surface what comes to mind, laddering to find out why it matters, rating scales and willingness to pay to measure it.</p>";
+  renderInterview();
+}
+function isRating(t){ return t==="scale5"||t==="scale7"||t==="wtp"; }
+function roleBlock(s){ return fill(CC.prompts.rolePreamble,{attrs:attrsString(s),backstory:s.backstory||"(none yet)",anchors:anchorsString(s)})+"\n\n"; }
+function fillBrand(text){ return text.replace(/\{\{\s*brand\s*\}\}/gi, P.brand||"the brand"); }
+function fmtBlock(type){
+  const lines=["ANSWER: <your in-character answer>"];
+  if(type==="scale5") lines.push("RATING: <required: one whole number from 1 to 5>");
+  else if(type==="scale7") lines.push("RATING: <required: one whole number from 1 to 7>");
+  else if(type==="wtp") lines.push("RATING: <required: one number, the percent>");
+  else lines.push("RATING: <leave blank>");
+  if(type==="association") lines.push("WORDS: <required: the words or brand names that come to mind, comma-separated>");
+  else lines.push("WORDS: <leave blank>");
+  return lines.join("\n");
+}
+function questionPrompt(s,q){
+  // every prompt is self-contained: the role block and anchors ride along each
+  // time, so a drifted or fresh thread can't fall back to assistant mode; the
+  // answer format block is built per question type so required lines are explicit
+  return fill(CC.prompts.questionWrap,{roleblock:roleBlock(s),question:fillBrand(q.text),format:fmtBlock(q.type)});
+}
+function renderInterview(){
+  const host=$("interviewArea"); const s=P.subjects.find(x=>x.id===P.curSubject);
+  $("curSubjLbl").textContent = s? "· "+s.id+" ("+attrsString(s).slice(0,60)+"…)" : "";
+  if(!s){ host.innerHTML="<p class='sub'>Draw a subject in Stage 2 first.</p>"; return; }
+  if(!P.instruments.length){ host.innerHTML="<p class='sub'>Add at least one instrument above.</p>"; return; }
+  host.innerHTML = P.instruments.map((q,i)=>{
+    const rec=s.interview.find(r=>r.qid===q.id)||{};
+    const probeBlock = rec.probeOpen ? `
+      <div style="margin-top:8px;padding-left:12px;border-left:3px solid var(--maize)">
+        <b style="font-size:.8rem">Follow-up probe</b>
+        <div class="prompt" style="margin-top:4px">${esc(probePrompt(s,rec))}</div>
+        <label>Paste the follow-up answer</label>
+        <textarea oninput="setProbe('${s.id}','${q.id}',this.value)" onchange="setProbe('${s.id}','${q.id}',this.value,true)" placeholder="Paste ChatGPT's follow-up answer...">${esc(rec.probeRaw||"")}</textarea>
+      </div>` : (rec.parsed?.answer ? `<button class="btn sec sm" style="margin-left:6px" onclick="openProbe('${s.id}','${q.id}')">Probe deeper</button>` : "");
+    return `<div class="qacard">
+      <b>Q${i+1}. ${esc(fillBrand(q.text))}</b>
+      <div class="prompt" style="margin-top:6px">${esc(questionPrompt(s,q))}</div>
+      <button class="btn sm" onclick="copyQ('${s.id}','${q.id}')">Copy prompt</button>
+      <label style="margin-top:6px">Paste answer (ANSWER: / RATING: / WORDS:)</label>
+      <textarea oninput="setAnswer('${s.id}','${q.id}','${q.type}',this.value)" onchange="setAnswer('${s.id}','${q.id}','${q.type}',this.value,true)" placeholder="Paste ChatGPT's answer block...">${esc(rec.answerRaw||"")}</textarea>
+      <div id="pv_${q.id}">${rec.parsed?parsedView(rec.parsed):""}</div>
+      ${probeBlock}
+    </div>`;
+  }).join("") + `<button class="btn gd sm" onclick="completeSubject('${s.id}')">Mark subject complete</button>`;
+}
+function parsedView(p){
+  let out="<div style='font-size:.78rem;color:var(--good);margin-top:4px'>parsed → ";
+  if(p.answer) out+="answer ✓ ";
+  if(p.rating!=null&&!isNaN(p.rating)) out+="rating "+p.rating+" ";
+  if(p.words&&p.words.length) out+="words: "+p.words.join(", ");
+  if(p.error) out="<div style='font-size:.78rem;color:var(--bad);margin-top:4px'>"+p.error;
+  return out+"</div>";
+}
+function copyQ(sid,qid){ const s=P.subjects.find(x=>x.id===sid),q=P.instruments.find(x=>x.id===qid); navigator.clipboard?.writeText(questionPrompt(s,q)); toast("Prompt copied"); }
+function parseAnswer(raw,type){
+  const out={}; if(!raw||!raw.trim()) return null;
+  const a=raw.match(/ANSWER:\s*([\s\S]*?)(?:\n[A-Z]+:|$)/i);
+  const r=raw.match(/RATING:\s*(-?\d+(?:\.\d+)?)/i);
+  const w=raw.match(/WORDS:\s*([\s\S]*?)(?:\n[A-Z]+:|$)/i);
+  out.answer=a?a[1].trim():raw.trim();
+  if(r) out.rating=parseFloat(r[1]);
+  if(w) out.words=w[1].split(/[,\n]/).map(x=>x.trim()).filter(Boolean);
+  if(isRating(type) && (out.rating==null||isNaN(out.rating))) out.error="This question type needs a RATING: number. Re-copy the prompt and ask again, or fix the paste by hand.";
+  if(type==="scale5" && out.rating!=null && (out.rating<1||out.rating>5)) out.error="Rating should be between 1 and 5.";
+  if(type==="scale7" && out.rating!=null && (out.rating<1||out.rating>7)) out.error="Rating should be between 1 and 7.";
+  if(type==="association" && (!out.words||!out.words.length)) out.error="This question type needs a WORDS: list. Re-copy the prompt and ask again, or fix the paste by hand.";
+  return out;
+}
+function setAnswer(sid,qid,type,v,rerender){
+  const s=P.subjects.find(x=>x.id===sid); let rec=s.interview.find(r=>r.qid===qid);
+  if(!rec){ rec={qid,question:P.instruments.find(q=>q.id===qid).text,instrument:type}; s.interview.push(rec); }
+  rec.answerRaw=v; rec.parsed=parseAnswer(v,type); save();
+  // re-rendering on every keystroke steals focus from the textarea, so only
+  // re-render on change/blur (rerender===true) and just update the parsed line live
+  if(rerender===true){ renderInterview(); return; }
+  const pv=$("pv_"+qid); if(pv) pv.innerHTML=rec.parsed?parsedView(rec.parsed):"";
+}
+function setProbe(sid,qid,v,rerender){
+  const s=P.subjects.find(x=>x.id===sid); const rec=s.interview.find(r=>r.qid===qid); if(!rec) return;
+  rec.probeRaw=v; rec.probeParsed=parseAnswer(v,"open"); save();
+  if(rerender===true) renderInterview();
+}
+function probePrompt(s,rec){ return roleBlock(s)+fill(CC.prompts.probe,{prior:(rec.parsed?.answer||"").slice(0,300)}); }
+function openProbe(sid,qid){
+  const s=P.subjects.find(x=>x.id===sid); const rec=s.interview.find(r=>r.qid===qid); if(!rec||!rec.parsed?.answer){ toast("Answer the question first"); return; }
+  rec.probeOpen=true; navigator.clipboard?.writeText(probePrompt(s,rec)); save(); toast("Probe prompt copied"); renderInterview();
+}
+function completeSubject(id){
+  const s=P.subjects.find(x=>x.id===id);
+  const answered=s.interview.filter(r=>r.parsed && !r.parsed.error && r.parsed.answer).length;
+  if(answered<P.instruments.length && !confirm(`${answered} of ${P.instruments.length} questions have a usable answer for ${s.id}. Mark it complete anyway?`)) return;
+  s.status="complete"; save(); runVariance(); renderTray(); toast(s.id+" complete");
+}
+
+/* ---- Stage 4 ---- */
+function selectSubject(id){ P.curSubject=id; save(); renderInterview(); renderTray(); showStep(3); }
+function renderTray(){
+  const host=$("sampleTray"); const done=P.subjects.filter(s=>s.status==="complete").length;
+  $("sampleCount").textContent = `(${done} complete of ${P.subjects.length} drawn, aim for 20 or more)`;
+  host.innerHTML = P.subjects.length? P.subjects.map(s=>`<div class="tok ${s.id===P.curSubject?'active':''}" onclick="selectSubject('${s.id}')"><b>${s.id}</b>${esc(Object.values(s.attrs).slice(0,2).join(" · ")).slice(0,26)}<span class="st">${s.status}</span></div>`).join("") : "<p class='sub'>No subjects yet.</p>";
+}
+function jaccard(a,b){ const A=new Set(a),B=new Set(b); const inter=[...A].filter(x=>B.has(x)).length; const uni=new Set([...A,...B]).size||1; return inter/uni; }
+function runVariance(){
+  const done=P.subjects.filter(s=>s.status==="complete");
+  const host=$("varMonitor"); if(done.length<3){ host.innerHTML="<p class='sub'>The monitor starts once three subjects are complete.</p>"; return; }
+  let html="";
+  P.instruments.forEach(q=>{
+    if(isRating(q.type)){
+      const vals=done.map(s=>s.interview.find(r=>r.qid===q.id)?.parsed?.rating).filter(v=>v!=null&&!isNaN(v));
+      if(vals.length<3) return;
+      const mean=vals.reduce((a,b)=>a+b,0)/vals.length;
+      const sd=Math.sqrt(vals.reduce((a,b)=>a+(b-mean)**2,0)/vals.length);
+      const counts={}; vals.forEach(v=>counts[v]=(counts[v]||0)+1);
+      const domFrac=Math.max(...Object.values(counts))/vals.length;
+      const scaleMax=q.type==="scale7"?7:q.type==="wtp"?null:5;
+      const sdThresh=q.type==="scale7"?1.1:0.8;
+      const collapsed = (q.type!=="wtp" && sd<sdThresh) || domFrac>0.6;
+      // distribution bars
+      let bars="<div class='bars'>";
+      const keys=Object.keys(counts).sort((a,b)=>a-b);
+      const mx=Math.max(...Object.values(counts));
+      keys.forEach(k=>{ bars+=`<div>${k}</div><div class="bar"><span style="width:${Math.round(100*counts[k]/mx)}%"></span><i>${counts[k]}</i></div>`; });
+      bars+="</div>";
+      html+=`<h3>${esc(fillBrand(q.text))} <span class="pill">SD ${sd.toFixed(2)}${scaleMax?" / "+scaleMax:""}</span></h3>${bars}`;
+      if(collapsed) html+=flagBox(q.id, `Ratings on "${fillBrand(q.text)}" are bunching up (SD ${sd.toFixed(2)}${domFrac>0.6?`, one value holds ${Math.round(domFrac*100)}%`:""}). This is the mean regression pattern from lecture. Try widening your psychographic distributions or strengthening the per-subject anchors.`);
+    }
+    if(q.type==="open"||q.type==="association"){
+      const recent=done.slice(-5).map(s=>{ const r=s.interview.find(x=>x.qid===q.id); return (r?.parsed?.words)|| (r?.parsed?.answer||"").toLowerCase().split(/\W+/).filter(w=>w.length>3); }).filter(x=>x&&x.length);
+      if(recent.length>=3){
+        let sim=0,n=0; for(let i=0;i<recent.length;i++)for(let j=i+1;j<recent.length;j++){sim+=jaccard(recent[i],recent[j]);n++;}
+        sim=n?sim/n:0;
+        if(sim>0.6) html+=flagBox(q.id, `The last ${recent.length} subjects answered "${fillBrand(q.text)}" almost the same way (word overlap ${sim.toFixed(2)}). Check whether this is mean regression before you continue.`);
+      }
+    }
+  });
+  host.innerHTML=html||"<p class='sub'>Nothing to monitor yet. The monitor works on rating and word association questions.</p>";
+}
+function flagBox(qid,msg){
+  const existing=P.flags.find(f=>f.qid===qid&&f.message===msg);
+  const resp=existing?existing.studentResponse:"";
+  return `<div class="flag"><b>⚠ Variance flag (heuristic):</b> ${esc(msg)}<label style="margin-top:6px">What will you change, or why do you accept this? Your answer is logged in the appendix limitations note.</label>
+    <textarea oninput="setFlag('${qid}',this.value,${JSON.stringify(msg).replace(/"/g,'&quot;')})" placeholder="Your response (logged into the appendix limitations note)...">${esc(resp)}</textarea></div>`;
+}
+function setFlag(qid,resp,msg){
+  let f=P.flags.find(x=>x.qid===qid&&x.message===msg);
+  if(!f){ f={ts:Date.now(),qid,type:"variance",message:msg,studentResponse:""}; P.flags.push(f); }
+  f.studentResponse=resp; save();
+}
+
+/* ---- Stage 5 export ---- */
+function paramsString(d){ // plain-language description of a dimension's distribution, for the appendix
+  const p=d.params||{};
+  if(d.distType==="uniform") return `uniform, ${p.min} to ${p.max}`;
+  if(d.distType==="normal") return `normal, mean ${p.mean}, SD ${p.sd}`;
+  if(d.distType==="scale") return `1 to 7 scale, mean ${p.mean}, SD ${p.sd}`;
+  if(d.distType==="lognormal") return (p.mu!=null&&p.mu!=="")?`log-normal, mu ${p.mu}, sigma ${p.sigma}`:`log-normal, median ${p.median}, 90th percentile ${p.p90}`;
+  if(d.distType==="categorical") return (p.cats||[]).map(c=>`${c.label} ${c.pct}%`).join(", ");
+  if(d.distType==="ladder") return p.value||"";
+  return "";
+}
+function renderQuotes(){
+  const host=$("quotePick"); if(!host) return;
+  const rows=[];
+  P.subjects.filter(s=>s.status==="complete").forEach(s=>s.interview.forEach(r=>{
+    if(!r.parsed?.answer) return;
+    const q=P.instruments.find(x=>x.id===r.qid); if(!q||isRating(q.type)) return;
+    const key=s.id+"|"+r.qid;
+    rows.push(`<label style="display:flex;gap:8px;align-items:flex-start;font-weight:400;margin:6px 0;font-size:.84rem"><input type="checkbox" ${P.quoteSel[key]?"checked":""} onchange="toggleQuote('${key}',this)"><span><b>${s.id}</b> · ${esc(r.parsed.answer.slice(0,220))}</span></label>`);
+  }));
+  host.innerHTML = rows.length? `<h3>Representative quotes <span style="font-weight:400;color:var(--muted);font-size:.78rem">(choose up to 5; they go into the findings pack with a subject tag)</span></h3>${rows.join("")}` : "";
+}
+function toggleQuote(key,el){
+  P.quoteSel=P.quoteSel||{};
+  const count=Object.keys(P.quoteSel).filter(k=>P.quoteSel[k]).length;
+  if(el.checked && count>=5){ el.checked=false; toast("Five quotes is the limit"); return; }
+  P.quoteSel[key]=el.checked; save(); buildExports();
+}
+function buildExports(){
+  const done=P.subjects.filter(s=>s.status==="complete");
+  const brand=P.brand||"(brand)";
+  // Findings
+  let f=`${CC.exportPreamble}\nBrand: ${brand}\nCompleted subjects: ${done.length}\n\n`;
+  // association frequency
+  const wordCounts={};
+  done.forEach(s=>s.interview.forEach(r=>{
+    if(r.parsed?.words) r.parsed.words.forEach(w=>{const k=w.toLowerCase();wordCounts[k]=(wordCounts[k]||0)+1;});
+    if(r.probeParsed?.words) r.probeParsed.words.forEach(w=>{const k=w.toLowerCase();wordCounts[k]=(wordCounts[k]||0)+1;});
+  }));
+  const words=Object.entries(wordCounts).sort((a,b)=>b[1]-a[1]);
+  if(words.length){ f+="ASSOCIATION FREQUENCY (fill strength / favorability / uniqueness):\nword\tcount\tstrength\tfavorability\tuniqueness\n"+words.map(([w,c])=>`${w}\t${c}\t\t\t`).join("\n")+"\n\n"; }
+  // rating distributions
+  P.instruments.filter(q=>isRating(q.type)).forEach(q=>{
+    const vals=done.map(s=>s.interview.find(r=>r.qid===q.id)?.parsed?.rating).filter(v=>v!=null&&!isNaN(v));
+    if(!vals.length) return; const counts={}; vals.forEach(v=>counts[v]=(counts[v]||0)+1);
+    f+=`RATING DISTRIBUTION: ${fillBrand(q.text)}\nvalue,count\n`+Object.keys(counts).sort((a,b)=>a-b).map(k=>`${k},${counts[k]}`).join("\n")+`\n(n=${vals.length})\n\n`;
+  });
+  const qsel=Object.keys(P.quoteSel||{}).filter(k=>P.quoteSel[k]);
+  if(qsel.length){
+    f+="REPRESENTATIVE QUOTES:\n"+qsel.map(k=>{
+      const [sid,qid]=k.split("|"); const s=P.subjects.find(x=>x.id===sid); const r=s&&s.interview.find(x=>x.qid===qid);
+      if(!s||!r||!r.parsed?.answer) return null;
+      return `- "${r.parsed.answer}" (${s.id}: ${Object.values(s.attrs).slice(0,2).join(", ")})`;
+    }).filter(Boolean).join("\n")+"\n\n";
+  }
+  $("findingsOut").value=f.trim();
+  // Appendix
+  let a=`METHOD APPENDIX: ${brand}\n\nSAMPLE COMPOSITION (Stage 1 spec):\n`;
+  P.populationSpec.filter(d=>d.name).forEach(d=>{ a+=`- ${d.name} [${CC.dimensionClasses[d.cls].label}]: ${paramsString(d)}\n`; });
+  a+=`\nREALIZED DRAWS (${done.length} subjects):\n`+done.map(s=>`${s.id}: ${attrsString(s)}`).join("\n");
+  a+=`\n\nINSTRUMENTS (as asked):\n`+P.instruments.map((q,i)=>`Q${i+1} [${q.type}] ${fillBrand(q.text)}`).join("\n");
+  a+=`\n\nPROMPT TEMPLATES (verbatim):\n- backstory: ${CC.prompts.backstory}\n- role preamble: ${CC.prompts.rolePreamble}\n- question wrap: ${CC.prompts.questionWrap}\n- follow-up probe: ${CC.prompts.probe}`;
+  a+=`\n\nLIMITATIONS NOTE:\nThis is synthetic (silicon) data generated via ChatGPT, not human respondents. Known risk: mean regression (answers drifting toward the average). Variance flags raised and student responses:\n`;
+  a+= P.flags.length? P.flags.map(fl=>`- FLAG: ${fl.message}\n  RESPONSE: ${fl.studentResponse||"(none given)"}`).join("\n") : "- (no variance flags were raised)";
+  $("appendixOut").value=a.trim();
+}
+
+/* ---- persistence / IO ---- */
+function exportJSON(){ const blob=new Blob([JSON.stringify(P,null,2)],{type:"application/json"}); const u=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=u; a.download=(P.brand||"silicon-subjects")+".json"; a.click(); URL.revokeObjectURL(u); }
+function importJSON(e){
+  const file=e.target.files[0]; if(!file)return; const rd=new FileReader();
+  rd.onload=()=>{ try{
+    const inc=JSON.parse(rd.result);
+    // merge subjects by id (group work); keep instruments if ours empty
+    const ids=new Set(P.subjects.map(s=>s.id));
+    (inc.subjects||[]).forEach(s=>{ if(!ids.has(s.id)) P.subjects.push(s); });
+    if(!P.populationSpec.length && inc.populationSpec) P.populationSpec=inc.populationSpec;
+    if(!P.instruments.length && inc.instruments) P.instruments=inc.instruments;
+    else if(inc.instruments && P.instruments.length && JSON.stringify(inc.instruments.map(q=>q.text))!==JSON.stringify(P.instruments.map(q=>q.text))){
+      alert("The imported file uses a different question set than yours. Answers only aggregate across identical questions, so agree on one set with your team.");
+    }
+    (inc.flags||[]).forEach(fl=>{ if(!P.flags.some(x=>x.ts===fl.ts&&x.message===fl.message)) P.flags.push(fl); });
+    if(inc.quoteSel) P.quoteSel=Object.assign({}, inc.quoteSel, P.quoteSel||{});
+    if(!P.brand && inc.brand){ P.brand=inc.brand; $("brandInput").value=inc.brand; }
+    P.seq=Math.max(P.seq||0, inc.seq||0);
+    save(); renderAll(); alert("Merged. Subjects now: "+P.subjects.length);
+  }catch(err){ alert("Could not read that file: "+err.message); } };
+  rd.readAsText(file); e.target.value="";
+}
+function resetProject(){ if(confirm("Clear all work on this device? (Export first if you want a copy.)")){ P=BLANK(); save(); renderAll(); } }
+
+/* ---- misc UI ---- */
+function copyText(id){ const t=$(id); t.select(); navigator.clipboard?.writeText(t.value); toast("Copied"); }
+function download(name,id){ const blob=new Blob([$(id).value],{type:"text/plain"}); const u=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=u; a.download=name; a.click(); URL.revokeObjectURL(u); }
+function toast(m){ const s=$("saveInd"); s.textContent=m; setTimeout(()=>s.textContent="saved",1000); }
+function openInspect(){ $("inspectBody").innerHTML=Object.entries(CC.prompts).map(([k,v])=>`<h3>${k}</h3><div class="prompt">${esc(v)}</div>`).join(""); $("inspectModal").classList.add("on"); }
+function closeInspect(){ $("inspectModal").classList.remove("on"); }
+
+/* ---- stepper ---- */
+const STEPS=[["1","Define population"],["2","Draw a subject"],["3","Interview"],["4","Build the sample"],["5","Export"]];
+function refreshStepper(){
+  const open=gateStatus().open;
+  $("stepper").innerHTML=STEPS.map((s,i)=>{
+    const locked = i>=1 && !open;
+    return `<button class="${curStep==i+1?'active':''} ${locked?'locked':''}" onclick="tryStep(${i+1})"><span class="n">${s[0]}</span>${s[1]}</button>`;
+  }).join("");
+}
+let curStep=1;
+function tryStep(n){ if(n>1 && !gateStatus().open){ alert("Complete the Stage 1 requirements to continue."); return; } showStep(n); }
+function showStep(n){
+  curStep=n;
+  document.querySelectorAll(".step").forEach((s,i)=>s.classList.toggle("on",i===n-1));
+  if(n===4){ renderTray(); runVariance(); }
+  if(n===5){ renderQuotes(); buildExports(); }
+  if(n===3){ renderInterview(); }
+  refreshStepper(); window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function renderAll(){
+  $("topTitle").textContent=CC.courseLabel;
+  $("topCourse").textContent=CC.course;
+  $("footNote").innerHTML=CC.footNote;
+  $("brandInput").value=P.brand||"";
+  renderInstrTypes(); renderSuggested(); renderDims(); renderInstruments(); renderTray();
+  const s=P.subjects.find(x=>x.id===P.curSubject); if(s) renderDraw(s);
+  refreshStepper();
+}
+$("brandInput").addEventListener("input",e=>{ P.brand=e.target.value; save(); });
+
+load(); renderAll();
+</script>
+</body>
+</html>

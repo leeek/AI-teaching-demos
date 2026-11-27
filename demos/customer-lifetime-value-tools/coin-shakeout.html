@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<!--
+  THE SHAKEOUT — heterogeneous coins, churn as coin flips
+  ════════════════════════════════════════════════════════
+  100 customers = 100 coins, each minted with its own P(death) per round,
+  drawn from a Beta distribution. Coin color encodes that probability
+  (pale gold = lower risk … deep crimson = at risk). Flip round by round:
+  • live Alive / Dropped counters
+  • the shakeout: survivors' average death risk falls below the minted mean
+  • luck markers: at-risk coins that survived ✦, lower-risk coins that died (dashed ring)
+  • retention chart of the simulated cohort, round by round
+
+  Pure math lives between MATH-CORE markers (same convention as
+  bg_clv_explorer.html) so tests can extract it:  node - -test
+  Chart series colors validated (CVD + contrast) on the dark surface:
+  cohort line #B38900 on #081420.
+-->
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Coin Shakeout</title>
+  <style>
+    :root {
+      --bg: #081420;
+      --panel: #0D2032;
+      --panel2: #112B41;
+      --line: rgba(214, 226, 240, .10);
+      --line2: rgba(214, 226, 240, .18);
+      --ink: #EDE7D8;
+      --muted: #8FA3B8;
+      --faint: #5E7288;
+      --gold: #FFCB05;
+      --gold-line: #B38900;
+      --blue: #4E97DB;
+      --display: 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+      --body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    html {
+      color-scheme: dark
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--body);
+      font-size: 15px;
+      line-height: 1.45;
+      min-height: 100vh;
+      background-image: radial-gradient(1100px 500px at 70% -10%, rgba(255, 203, 5, .05), transparent 60%);
+    }
+
+    button {
+      font: inherit;
+      color: inherit;
+      background: none;
+      border: none;
+      cursor: pointer
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 2px;
+      border-radius: 4px
+    }
+
+    .num {
+      font-variant-numeric: tabular-nums
+    }
+
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 22px 26px 40px
+    }
+
+    /* ── header ─────────────────────────────── */
+    header {
+      display: flex;
+      gap: 24px;
+      align-items: flex-end;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 18px
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px
+    }
+
+    h1 {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: 40px;
+      line-height: 1.02;
+      letter-spacing: .01em
+    }
+
+    .lede {
+      color: var(--muted);
+      max-width: 44ch;
+      margin-top: 8px;
+      font-size: 14px
+    }
+
+    .lede b {
+      color: var(--ink);
+      font-weight: 600
+    }
+
+    .tiles {
+      display: grid;
+      grid-template-columns: repeat(4, auto);
+      gap: 10px
+    }
+
+    .tile {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 16px 12px;
+      min-width: 108px
+    }
+
+    .tile .lab {
+      font-size: 10.5px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap
+    }
+
+    .tile .val {
+      font-family: var(--display);
+      font-size: 30px;
+      line-height: 1.15;
+      margin-top: 2px
+    }
+
+    .tile .sub {
+      font-size: 11.5px;
+      color: var(--muted);
+      white-space: nowrap
+    }
+
+    .tile .sub .down {
+      color: var(--gold)
+    }
+
+    #tileShake {
+      border-color: rgba(255, 203, 5, .35)
+    }
+
+    /* ── layout ─────────────────────────────── */
+    main {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 20px;
+      align-items: start
+    }
+
+    @media (max-width:880px) {
+      main {
+        grid-template-columns: 1fr
+      }
+
+      .tiles {
+        grid-template-columns: repeat(2, 1fr);
+        width: 100%
+      }
+
+      .tile {
+        min-width: 0
+      }
+
+      .tile .lab,
+      .tile .sub {
+        white-space: normal
+      }
+
+      .wrap {
+        padding: 18px 14px 32px
+      }
+    }
+
+    /* ── rail: the mint ─────────────────────── */
+    .rail {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px
+    }
+
+    .rail h2 {
+      font-family: var(--display);
+      font-size: 18px;
+      font-weight: 700
+    }
+
+    .rail .hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: -8px
+    }
+
+    #densityBox {
+      position: relative
+    }
+
+    #density {
+      display: block;
+      width: 100%;
+      height: auto
+    }
+
+    .axis-note {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 2px
+    }
+
+    .ramp-note {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px
+    }
+
+    .seg {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px
+    }
+
+    .seg button {
+      border: 1px solid var(--line2);
+      border-radius: 8px;
+      padding: 7px 4px;
+      font-size: 12.5px;
+      color: var(--muted);
+      background: var(--panel2)
+    }
+
+    .seg button.on {
+      border-color: var(--gold);
+      color: var(--ink);
+      background: rgba(255, 203, 5, .10)
+    }
+
+    .seg.seg-mini {
+      grid-template-columns: repeat(2, auto);
+      gap: 4px
+    }
+
+    .seg.seg-mini button {
+      padding: 4px 9px;
+      font-size: 11.5px;
+      border-radius: 6px
+    }
+
+    .btn.case {
+      width: 100%;
+      margin-top: 8px;
+      border-color: rgba(237, 231, 216, .35);
+      color: var(--ink)
+    }
+
+    .btn.case.on {
+      border-color: var(--gold);
+      background: rgba(255, 203, 5, .10)
+    }
+
+    .case-note {
+      margin-top: 5px;
+      line-height: 1.35
+    }
+
+    .ctl label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12.5px;
+      color: var(--muted);
+      margin-bottom: 3px
+    }
+
+    .ctl label output {
+      color: var(--ink);
+      font-weight: 600
+    }
+
+    input[type=range] {
+      width: 100%;
+      accent-color: var(--gold)
+    }
+
+    .btnrow {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px
+    }
+
+    .btn {
+      border-radius: 9px;
+      padding: 10px 8px;
+      font-size: 14px;
+      font-weight: 600;
+      border: 1px solid var(--line2);
+      background: var(--panel2)
+    }
+
+    .btn.primary {
+      background: var(--gold);
+      color: #241A00;
+      border-color: var(--gold)
+    }
+
+    .btn.primary:hover {
+      background: #FFD84A
+    }
+
+    .btn:hover {
+      border-color: var(--gold)
+    }
+
+    .btn:disabled {
+      opacity: .4;
+      cursor: default
+    }
+
+    .btn:disabled:hover {
+      border-color: var(--line2);
+      background: var(--panel2)
+    }
+
+    .btn.primary:disabled:hover {
+      background: var(--gold)
+    }
+
+    .btnrow .ghost {
+      font-size: 12.5px;
+      font-weight: 500;
+      padding: 7px 8px;
+      color: var(--muted)
+    }
+
+    .btnrow .ghost:hover {
+      color: var(--ink)
+    }
+
+    .togs {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      border-top: 1px solid var(--line);
+      padding-top: 12px
+    }
+
+    .tog {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer
+    }
+
+    .tog input {
+      accent-color: var(--gold)
+    }
+
+    .tog input:checked~span {
+      color: var(--ink)
+    }
+
+    .luck-key {
+      font-size: 11.5px;
+      color: var(--faint);
+      padding-left: 24px
+    }
+
+    .luck-key .star {
+      color: var(--gold)
+    }
+
+    .luck-key .dash {
+      color: var(--blue)
+    }
+
+    /* ── stage: coins + story + chart ───────── */
+    .stage {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-width: 0
+    }
+
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 7px
+    }
+
+    @media (max-width:560px) {
+      #grid {
+        gap: 5px
+      }
+    }
+
+    .coin {
+      position: relative;
+      aspect-ratio: 1;
+      perspective: 300px;
+      border-radius: 50%
+    }
+
+    .coin .inner {
+      position: absolute;
+      inset: 0;
+      transform-style: preserve-3d;
+      transition: transform .55s cubic-bezier(.35, .7, .3, 1);
+      transition-delay: var(--d, 0s)
+    }
+
+    .coin.dead .inner {
+      transform: rotateY(180deg)
+    }
+
+    .face {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      backface-visibility: hidden;
+      display: grid;
+      place-items: center
+    }
+
+    .face.front {
+      background: radial-gradient(circle at 32% 28%, var(--cl) 0%, var(--c) 46%, var(--cd) 100%);
+      box-shadow: inset 0 0 0 2px var(--cd), inset 0 0 0 3.5px rgba(255, 255, 255, .18),
+        0 2px 5px rgba(0, 0, 0, .45);
+    }
+
+    .face.back {
+      transform: rotateY(180deg);
+      background: radial-gradient(circle at 35% 30%, #26313D 0%, #1A2530 55%, #121B24 100%);
+      box-shadow: inset 0 0 0 2px var(--cd), 0 1px 3px rgba(0, 0, 0, .5);
+      color: #54626F;
+      font-size: 15px;
+    }
+
+    .coin .pct {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--tx);
+      display: none;
+      letter-spacing: -.02em
+    }
+
+    body.labels-on .coin .pct {
+      display: block
+    }
+
+    @keyframes wobble {
+      40% {
+        transform: rotateY(200deg)
+      }
+
+      100% {
+        transform: rotateY(360deg)
+      }
+    }
+
+    .coin.spin .inner {
+      animation: wobble .55s cubic-bezier(.35, .7, .3, 1);
+      animation-delay: var(--d, 0s)
+    }
+
+    .coin .badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      font-size: 9px;
+      display: none;
+      place-items: center;
+      z-index: 2
+    }
+
+    body.luck-on .coin.lucky .badge {
+      display: grid
+    }
+
+    body.luck-on .coin.lucky {
+      box-shadow: 0 0 12px 2px rgba(255, 203, 5, .35);
+      border-radius: 50%
+    }
+
+    body.luck-on .coin.dead.unlucky .face.back {
+      box-shadow: inset 0 0 0 2px var(--blue), 0 1px 3px rgba(0, 0, 0, .5)
+    }
+
+    body.luck-on .coin.dead.unlucky {
+      outline: 2px dashed var(--blue);
+      outline-offset: 2px;
+      border-radius: 50%
+    }
+
+    #story {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--gold);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13.5px;
+      color: var(--muted);
+      min-height: 42px
+    }
+
+    #story b {
+      color: var(--ink)
+    }
+
+    /* ── charts ─────────────────────────────── */
+    .charts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px
+    }
+
+    @media (max-width:880px) {
+      .charts {
+        grid-template-columns: 1fr
+      }
+    }
+
+    .chartcard {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px 16px 8px;
+      min-width: 0
+    }
+
+    .chart-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 4px
+    }
+
+    .chart-head h2 {
+      font-family: var(--display);
+      font-size: 16px;
+      font-weight: 700
+    }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--muted);
+      align-items: center
+    }
+
+    .chip {
+      display: inline-block;
+      width: 18px;
+      height: 0;
+      border-top: 3px solid var(--gold-line);
+      border-radius: 2px;
+      vertical-align: middle;
+      margin-right: 5px
+    }
+
+    .chip.swatch {
+      border-top: none;
+      height: 9px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #FFDF6E, #EC9A26, #A93220, #6E1113)
+    }
+
+    .chip.outline {
+      border-top: 1.5px solid var(--ink)
+    }
+
+    /* dashed chips for the two theoretical curves on the retention chart */
+    .chip.model {
+      border-top: 2px dashed #EDE7D8
+    }
+
+    .chip.ident {
+      border-top: 2px dotted #9AA4AE
+    }
+
+    .chip.obs {
+      border-top: 3px solid #B38900
+    }
+
+    #chartLegend {
+      margin: 0 0 2px;
+      flex-wrap: wrap;
+      gap: 6px 14px
+    }
+
+    #chart,
+    #hist {
+      display: block;
+      width: 100%;
+      height: auto
+    }
+
+    #chart text,
+    #hist text {
+      font-family: var(--body);
+      font-size: 11px;
+      fill: var(--muted)
+    }
+
+    /* ── tooltip ────────────────────────────── */
+    #tip {
+      position: fixed;
+      z-index: 10;
+      pointer-events: none;
+      background: #050D15;
+      border: 1px solid var(--line2);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 12px;
+      color: var(--ink);
+      max-width: 240px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, .5);
+      opacity: 0;
+      transition: opacity .12s
+    }
+
+    #tip.show {
+      opacity: 1
+    }
+
+    #tip .t-sub {
+      color: var(--muted)
+    }
+
+    footer {
+      margin-top: 22px;
+      font-size: 11.5px;
+      color: var(--faint);
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .coin .inner {
+        transition: none
+      }
+
+      .coin.spin .inner {
+        animation: none
+      }
+
+      * {
+        scroll-behavior: auto
+      }
+    }
+  </style>
+</head>
+
+<body class="luck-on">
+  <div class="wrap">
+
+    <header>
+      <div>
+        <div class="eyebrow">Customer analytics · churn as coin flips</div>
+        <h1>The Coin Shakeout</h1>
+        <p class="lede">100 customers, each a coin minted with its <b>own</b> chance of death every
+          round. Pale gold coins are lower risk; deep crimson coins are at risk. Flip and count.</p>
+      </div>
+      <div class="tiles">
+        <div class="tile">
+          <div class="lab">Round</div>
+          <div class="val num" id="tRound">0</div>
+          <div class="sub">&nbsp;</div>
+        </div>
+        <div class="tile">
+          <div class="lab">Alive</div>
+          <div class="val num" id="tAlive">100</div>
+          <div class="sub num" id="tAlivePct">100%</div>
+        </div>
+        <div class="tile">
+          <div class="lab">Dropped</div>
+          <div class="val num" id="tDead">0</div>
+          <div class="sub" id="tDeadSub">&nbsp;</div>
+        </div>
+        <div class="tile" id="tileShake">
+          <div class="lab">Survivors’ avg P(death)</div>
+          <div class="val num" id="tShake">–</div>
+          <div class="sub num" id="tShakeSub">minted at –</div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <aside class="rail" aria-label="The mint — cohort settings">
+        <h2>The mint</h2>
+        <p class="hint">Where this cohort’s coins come from.</p>
+
+        <div id="densityBox">
+          <svg id="density" viewBox="0 0 268 102" role="img"
+            aria-label="Distribution of death probabilities across the minted coins"></svg>
+          <div class="ramp-note"><span>pale gold = lower risk</span><span>deep red = at risk</span></div>
+          <div class="axis-note">each coin’s P(death) per round</div>
+        </div>
+
+        <div class="seg" role="group" aria-label="Cohort presets">
+          <button id="pIdent">Identical</button>
+          <button id="pMixed" class="on">Mixed</button>
+          <button id="pExtreme">Extremes</button>
+        </div>
+        <button class="btn case" id="pBlueApron">Mint the Blue Apron cohort</button>
+        <p class="hint case-note">The sBG fit from class: average 35%, wide variety. These coins
+          reproduce the survival curve in <i>Class 7 - BG and CLV</i>.</p>
+
+        <div class="ctl">
+          <label for="muSlider">Average P(death) <output id="muOut">20%</output></label>
+          <input type="range" id="muSlider" min="5" max="60" value="20" step="1">
+        </div>
+        <div class="ctl">
+          <label for="hetSlider">Coin variety <output id="hetOut">mixed</output></label>
+          <input type="range" id="hetSlider" min="0" max="100" value="55" step="1">
+        </div>
+
+        <div class="btnrow">
+          <button class="btn primary" id="btnFlip">Flip a round</button>
+          <button class="btn" id="btnAuto">Auto-run ▸</button>
+          <button class="btn ghost" id="btnReset">Reset flips</button>
+          <button class="btn ghost" id="btnMint">Mint new coins</button>
+        </div>
+
+        <div class="togs">
+          <label class="tog"><input type="checkbox" id="togSort"><span>Sort coins by risk</span></label>
+          <label class="tog"><input type="checkbox" id="togLabels"><span>Label each coin’s P(death)</span></label>
+          <label class="tog"><input type="checkbox" id="togLuck" checked><span>Mark the lucky &amp;
+              unlucky</span></label>
+          <div class="luck-key"><span class="star">✦ at risk, still alive</span> · <span class="dash">⭘ lower risk, died
+              anyway</span></div>
+        </div>
+      </aside>
+
+      <section class="stage" aria-label="The cohort">
+        <div class="charts">
+          <div class="chartcard">
+            <div class="chart-head">
+              <h2 id="chartTitle">How many are still alive?</h2>
+              <div class="seg seg-mini" role="group" aria-label="Chart view">
+                <button id="vAlive" class="on">Share alive</button>
+                <button id="vRate">Retention rate</button>
+              </div>
+            </div>
+            <div class="legend" id="chartLegend"></div>
+            <svg id="chart" viewBox="0 0 460 258" role="img"
+              aria-label="Retention curve: share of the cohort still alive each round, against the model"></svg>
+          </div>
+          <div class="chartcard">
+            <div class="chart-head">
+              <h2>Who are survivors?</h2>
+              <div class="legend">
+                <span><span class="chip swatch"></span>alive now</span>
+                <span><span class="chip outline"></span>the minted cohort</span>
+              </div>
+            </div>
+            <svg id="hist" viewBox="0 0 460 258" role="img"
+              aria-label="Histogram of death probabilities among surviving coins, with the initial cohort as an outline"></svg>
+          </div>
+        </div>
+
+        <p id="story" aria-live="polite"></p>
+        <div id="grid" aria-label="100 coins"></div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Each coin’s P(death) is drawn once from a Beta distribution, then fixed for life — heterogeneity, not
+        change.</span>
+      <span>Eric Schwartz · MKT 626</span>
+    </footer>
+  </div>
+
+  <div id="tip" role="tooltip"></div>
+
+  <script>
+    /*MATH-CORE-START*/
+    const COINS = {
+      // Beta(a,b) from mean mu and concentration K = a+b
+      betaParams(mu, K) { return { a: mu * K, b: (1 - mu) * K }; },
+
+      // deterministic PRNG so a minted cohort is reproducible
+      mulberry32(seed) {
+        let s = seed >>> 0;
+        return function () {
+          s = (s + 0x6D2B79F5) >>> 0;
+          let t = s;
+          t = Math.imul(t ^ (t >>> 15), t | 1);
+          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      },
+
+      gauss(rnd) {
+        let u = 0, v = 0;
+        while (u === 0) u = rnd();
+        while (v === 0) v = rnd();
+        return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+      },
+
+      // Marsaglia–Tsang, with the alpha<1 boost
+      sampleGamma(shape, rnd) {
+        if (shape < 1) {
+          const u = rnd();
+          return COINS.sampleGamma(1 + shape, rnd) * Math.pow(u, 1 / shape);
+        }
+        const d = shape - 1 / 3, c = 1 / Math.sqrt(9 * d);
+        for (; ;) {
+          let x, v;
+          do { x = COINS.gauss(rnd); v = 1 + c * x; } while (v <= 0);
+          v = v * v * v;
+          const u = rnd();
+          if (u < 1 - 0.0331 * x * x * x * x) return d * v;
+          if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v;
+        }
+      },
+
+      sampleBeta(a, b, rnd) {
+        const x = COINS.sampleGamma(a, rnd), y = COINS.sampleGamma(b, rnd);
+        return x / (x + y);
+      },
+
+      // one theta per coin; K === Infinity -> identical coins at mu
+      mintThetas(N, mu, K, seed) {
+        if (!isFinite(K)) return Array.from({ length: N }, () => mu);
+        const { a, b } = COINS.betaParams(mu, K);
+        const rnd = COINS.mulberry32(seed);
+        return Array.from({ length: N }, () =>
+          Math.min(0.99, Math.max(0.01, COINS.sampleBeta(a, b, rnd))));
+      },
+
+      // unnormalized Beta pdf on a grid, scaled so max = 1 (for the mint strip)
+      betaPdfGrid(mu, K, n) {
+        const { a, b } = COINS.betaParams(mu, K);
+        const xs = [], ys = [];
+        let m = 0;
+        for (let i = 0; i <= n; i++) {
+          const x = 0.004 + (0.992 * i) / n;
+          const y = Math.exp((a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x));
+          xs.push(x); ys.push(y);
+          if (y > m) m = y;
+        }
+        return { xs, ys: ys.map(y => y / m) };
+      },
+
+      // identical-coins benchmark: S(t) = (1-mu)^t
+      homogeneousRetention(mu, t) { return Math.pow(1 - mu, t); },
+
+      // Beta-geometric expected retention: S(t) = prod_{i=0..t-1} (b+i)/(a+b+i)
+      bgExpectedRetention(mu, K, t) {
+        if (!isFinite(K)) return COINS.homogeneousRetention(mu, t);
+        const { a, b } = COINS.betaParams(mu, K);
+        let s = 1;
+        for (let i = 0; i < t; i++) s *= (b + i) / (a + b + i);
+        return s;
+      },
+
+      meanOf(arr) {
+        return arr.length ? arr.reduce((s, x) => s + x, 0) / arr.length : NaN;
+      },
+
+      // counts per equal-width bin over [0,1]; 1.0 folds into the top bin
+      histCounts(values, nBins) {
+        const counts = Array(nBins).fill(0);
+        for (const v of values) {
+          counts[Math.min(nBins - 1, Math.floor(v * nBins))]++;
+        }
+        return counts;
+      },
+
+      // luck: a survivor whose chance of lasting this long was under 25%
+      isLuckySurvivor(theta, t) { return t >= 2 && Math.pow(1 - theta, t) < 0.25; },
+      // a coin that died by round d although that was under 25% likely
+      isUnluckyDeath(theta, d) { return 1 - Math.pow(1 - theta, d) < 0.25; },
+    };
+    /*MATH-CORE-END*/
+
+    /* ── color ramp: theta -> coin color (light gold -> deep crimson) ── */
+    const RAMP = [
+      [0.00, 0xFF, 0xDF, 0x6E],
+      [0.20, 0xF7, 0xC2, 0x38],
+      [0.40, 0xEC, 0x9A, 0x26],
+      [0.60, 0xD8, 0x64, 0x1F],
+      [0.80, 0xA9, 0x32, 0x20],
+      [1.00, 0x6E, 0x11, 0x13],
+    ];
+    function rampColor(t) {
+      t = Math.min(1, Math.max(0, t));
+      let i = 0;
+      while (i < RAMP.length - 2 && t > RAMP[i + 1][0]) i++;
+      const [t0, r0, g0, b0] = RAMP[i], [t1, r1, g1, b1] = RAMP[i + 1];
+      const f = (t - t0) / (t1 - t0);
+      const mix = (a, b) => Math.round(a + (b - a) * f);
+      return [mix(r0, r1), mix(g0, g1), mix(b0, b1)];
+    }
+    const hex = rgb => '#' + rgb.map(v => v.toString(16).padStart(2, '0')).join('');
+    const shade = (rgb, f) => rgb.map(v => Math.round(f > 0 ? v + (255 - v) * f : v * (1 + f)));
+
+    /* ── state ── */
+    const N = 100;
+    const S = {
+      mu: 0.20, het: 55, seed: 20260814,
+      thetas: [], alive: [], deathRound: [],
+      round: 0, history: [], running: null,
+    };
+    const hetToK = h => h === 0 ? Infinity : Math.exp(Math.log(220) * (1 - h / 100) + Math.log(0.6) * (h / 100));
+    const hetWord = h => h === 0 ? 'identical' : h < 35 ? 'mild' : h < 75 ? 'mixed' : 'extreme';
+
+    const $ = id => document.getElementById(id);
+    const pct = x => Math.round(x * 100) + '%';
+    const grid = $('grid'), tip = $('tip');
+
+    /* ── mint & render coins ── */
+    function mint(newSeed) {
+      if (newSeed) S.seed = (Math.random() * 2 ** 31) >>> 0;
+      S.thetas = COINS.mintThetas(N, S.mu, hetToK(S.het), S.seed);
+      resetFlips();
+      renderCoins();
+      renderDensity();
+    }
+    function resetFlips() {
+      S.alive = Array(N).fill(true);
+      S.deathRound = Array(N).fill(-1);
+      S.round = 0;
+      S.history = [1];
+      stopAuto();
+      updateAll();
+    }
+
+    function renderCoins() {
+      grid.innerHTML = '';
+      S.thetas.forEach((th, i) => {
+        const c = rampColor(th);
+        const el = document.createElement('button');
+        el.className = 'coin';
+        el.dataset.i = i;
+        el.style.setProperty('--c', hex(c));
+        el.style.setProperty('--cl', hex(shade(c, 0.45)));
+        el.style.setProperty('--cd', hex(shade(c, -0.42)));
+        el.style.setProperty('--tx', th > 0.52 ? '#FFE9C9' : '#3A2A05');
+        el.innerHTML =
+          `<span class="inner">
+         <span class="face front"><span class="pct num">${Math.round(th * 100)}</span></span>
+         <span class="face back">✕</span>
+       </span><span class="badge">✦</span>`;
+        el.addEventListener('mouseenter', () => showTip(el, i));
+        el.addEventListener('focus', () => showTip(el, i));
+        el.addEventListener('mouseleave', hideTip);
+        el.addEventListener('blur', hideTip);
+        grid.appendChild(el);
+      });
+      applySort(false);
+      syncCoinClasses();
+    }
+
+    function coinEls() { return [...grid.children]; }
+
+    function syncCoinClasses() {
+      coinEls().forEach(el => {
+        const i = +el.dataset.i, th = S.thetas[i];
+        el.classList.toggle('dead', !S.alive[i]);
+        el.classList.toggle('lucky', S.alive[i] && COINS.isLuckySurvivor(th, S.round));
+        el.classList.toggle('unlucky', !S.alive[i] && COINS.isUnluckyDeath(th, S.deathRound[i]));
+        el.setAttribute('aria-label',
+          `Coin ${i + 1}: death chance ${pct(th)} per round, ` +
+          (S.alive[i] ? `alive after ${S.round} round${S.round === 1 ? '' : 's'}`
+            : `died in round ${S.deathRound[i]}`));
+      });
+    }
+
+    /* ── flipping ── */
+    function flipRound() {
+      const anyAlive = S.alive.some(Boolean);
+      if (!anyAlive) return;
+      S.round++;
+      coinEls().forEach(el => {
+        const i = +el.dataset.i;
+        if (!S.alive[i]) return;
+        el.style.setProperty('--d', (Math.random() * 0.3).toFixed(2) + 's');
+        if (Math.random() < S.thetas[i]) {
+          S.alive[i] = false;
+          S.deathRound[i] = S.round;
+          el.classList.add('dead');
+        } else {
+          el.classList.remove('spin'); void el.offsetWidth; el.classList.add('spin');
+        }
+      });
+      S.history.push(S.alive.filter(Boolean).length / N);
+      syncCoinClasses();
+      updateAll();
+      if (!S.alive.some(Boolean)) stopAuto();
+    }
+
+    function stopAuto() {
+      if (S.running) { clearInterval(S.running); S.running = null; }
+      $('btnAuto').textContent = 'Auto-run ▸';
+    }
+    function toggleAuto() {
+      if (S.running) return stopAuto();
+      if (!S.alive.some(Boolean)) return;
+      S.running = setInterval(() => { flipRound(); if (S.round >= 30) stopAuto(); }, 1150);
+      $('btnAuto').textContent = 'Pause ▮▮';
+      flipRound();
+    }
+
+    /* ── sorting (FLIP animation) ── */
+    function applySort(animate = true) {
+      const els = coinEls();
+      const before = animate ? els.map(el => el.getBoundingClientRect()) : null;
+      const sorted = $('togSort').checked;
+      els.forEach(el => {
+        const i = +el.dataset.i;
+        el.style.order = sorted
+          ? S.thetas.map((t, j) => [t, j]).sort((a, b) => a[0] - b[0]).findIndex(p => p[1] === i)
+          : i;
+      });
+      if (!animate || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      requestAnimationFrame(() => {
+        els.forEach((el, k) => {
+          const b = before[k], a = el.getBoundingClientRect();
+          const dx = b.left - a.left, dy = b.top - a.top;
+          if (!dx && !dy) return;
+          el.animate(
+            [{ transform: `translate(${dx}px,${dy}px)` }, { transform: 'translate(0,0)' }],
+            { duration: 480, easing: 'cubic-bezier(.35,.7,.3,1)' });
+        });
+      });
+    }
+
+    /* ── tooltip ── */
+    function showTip(el, i) {
+      const th = S.thetas[i], t = S.round;
+      let html = `<b>P(death) each round: ${pct(th)}</b><br>`;
+      if (S.alive[i]) {
+        const p = Math.pow(1 - th, t);
+        html += t === 0 ? `<span class="t-sub">not flipped yet</span>`
+          : `<span class="t-sub">survived ${t === 1 ? 'its first flip' : `all ${t} flips so far`} —
+             a ${pct(p)} chance of making it this far` +
+          (COINS.isLuckySurvivor(th, t) ? ' · <b>running lucky ✦</b>' : '') + `</span>`;
+      } else {
+        const d = S.deathRound[i];
+        html += `<span class="t-sub">died in round ${d} — that early was ${pct(1 - Math.pow(1 - th, d))} likely` +
+          (COINS.isUnluckyDeath(th, d) ? ' · <b>unlucky</b>' : '') + `</span>`;
+      }
+      tip.innerHTML = html;
+      const r = el.getBoundingClientRect();
+      tip.classList.add('show');
+      const tw = tip.offsetWidth, x = Math.min(Math.max(8, r.left + r.width / 2 - tw / 2), innerWidth - tw - 8);
+      tip.style.left = x + 'px';
+      tip.style.top = (r.top > 70 ? r.top - tip.offsetHeight - 8 : r.bottom + 8) + 'px';
+    }
+    function hideTip() { tip.classList.remove('show'); }
+
+    /* ── mint strip (beta density, gradient = legend) ── */
+    function renderDensity() {
+      const svg = $('density');
+      const W = 268, H = 102, pad = 16, base = H - 20, peak = 56;
+      const stops = Array.from({ length: 13 }, (_, i) =>
+        `<stop offset="${(i / 12 * 100).toFixed(0)}%" stop-color="${hex(rampColor(i / 12))}"/>`).join('');
+      let path;
+      const K = hetToK(S.het);
+      const xOf = x => pad + x * (W - 2 * pad);
+      if (!isFinite(K)) {
+        const x = xOf(S.mu);
+        path = `M ${x - 3} ${base} L ${x - 1.2} ${base - peak} L ${x + 1.2} ${base - peak} L ${x + 3} ${base} Z`;
+      } else {
+        const { xs, ys } = COINS.betaPdfGrid(S.mu, K, 120);
+        path = `M ${xOf(xs[0])} ${base} ` +
+          xs.map((x, i) => `L ${xOf(x).toFixed(1)} ${(base - ys[i] * peak).toFixed(1)}`).join(' ') +
+          ` L ${xOf(xs[xs.length - 1])} ${base} Z`;
+      }
+      const ticks = [0, 0.25, 0.5, 0.75, 1].map(v =>
+        `<line x1="${xOf(v)}" y1="${base}" x2="${xOf(v)}" y2="${base + 4}" stroke="rgba(214,226,240,.3)"/>
+     <text x="${xOf(v)}" y="${base + 14}" text-anchor="${v === 0 ? 'start' : v === 1 ? 'end' : 'middle'}"
+       font-size="9.5" fill="#8FA3B8" font-family="inherit"
+       ${v === 0 ? `dx="-10"` : v === 1 ? `dx="10"` : ''}>${v * 100}%</text>`).join('');
+      const muX = xOf(S.mu);
+      svg.innerHTML = `
+    <defs><linearGradient id="rampGrad" x1="0" x2="1" y1="0" y2="0">${stops}</linearGradient></defs>
+    <path d="${path}" fill="url(#rampGrad)" opacity="0.92"/>
+    <line x1="${pad}" y1="${base}" x2="${W - pad}" y2="${base}" stroke="rgba(214,226,240,.3)"/>
+    ${ticks}
+    <line x1="${muX}" y1="${base}" x2="${muX}" y2="${base - peak - 6}" stroke="#EDE7D8"
+      stroke-width="1" stroke-dasharray="2 3" opacity=".8"/>
+    <text x="${Math.min(Math.max(muX, 30), W - 30)}" y="${base - peak - 11}" text-anchor="middle"
+      font-size="9.5" fill="#EDE7D8">avg ${pct(S.mu)}</text>`;
+    }
+
+    /* ── retention chart ── */
+    const CH = { W: 460, H: 250, l: 40, r: 16, t: 14, b: 30 };
+    /* lo is the bottom of the y axis. Share-alive uses the full 0-100%; the retention
+       rate view zooms in, because a rate climbing from 80% to 91% is invisible on a
+       full scale and that climb is the entire point of the view. */
+    function chartScales(lo = 0) {
+      const X = Math.max(8, S.round + 2);
+      const xOf = t => CH.l + (t / X) * (CH.W - CH.l - CH.r);
+      const yOf = p => CH.t + (1 - (p - lo) / (1 - lo)) * (CH.H - CH.t - CH.b);
+      return { X, xOf, yOf, lo };
+    }
+    /* Bottom of the axis for the current view, rounded down to a clean tenth so the
+       gridline labels stay readable. */
+    function chartFloor(sr) {
+      if (!sr.rate) return 0;
+      const all = [...sr.obs, ...sr.model, ...sr.ident].map(p => p[1]);
+      if (!all.length) return 0;
+      return Math.max(0, Math.min(0.9, Math.floor((Math.min(...all) - 0.05) * 10) / 10));
+    }
+    /* view state for this chart: share alive S(t), or retention rate r(t) */
+    const VIEW = { mode: 'alive' };
+    /* Deliberately NOT blue. His --blue (#4E97DB) is already a dashed ring on a coin
+       meaning "died unluckily", so a blue dashed line on the chart right beside it
+       reads as the same idea. Neutral grey says "reference curve" and collides with
+       nothing; it is also dimmer than the cream, which keeps the correct model
+       visually dominant. */
+    const CC = { obs: '#B38900', model: '#EDE7D8', ident: '#9AA4AE' };
+
+    /* The observed cohort plus the two model curves the math core already provides.
+       In "rate" mode every series becomes r(t) = S(t)/S(t-1). The identical-coins
+       benchmark is flat at 1-mu there, which is the whole point: only a mixed cohort
+       produces an aggregate retention rate that climbs. */
+    function chartSeries(X) {
+      const K = hetToK(S.het);
+      const identical = !isFinite(K);
+      const rate = VIEW.mode === 'rate';
+      const obs = [], model = [], ident = [];
+      if (rate) {
+        for (let t = 1; t <= X; t++) {
+          if (t < S.history.length && S.history[t - 1] > 0) obs.push([t, S.history[t] / S.history[t - 1]]);
+          const b0 = COINS.bgExpectedRetention(S.mu, K, t - 1);
+          const b1 = COINS.bgExpectedRetention(S.mu, K, t);
+          if (b0 > 0) model.push([t, b1 / b0]);
+          ident.push([t, 1 - S.mu]);
+        }
+      } else {
+        for (let t = 0; t <= X; t++) {
+          if (t < S.history.length) obs.push([t, S.history[t]]);
+          model.push([t, COINS.bgExpectedRetention(S.mu, K, t)]);
+          ident.push([t, COINS.homogeneousRetention(S.mu, t)]);
+        }
+      }
+      return { obs, model, ident, identical, rate };
+    }
+
+    function renderChartLegend(sr) {
+      const bits = [`<span><span class="chip obs"></span>this cohort, observed</span>`];
+      bits.push(sr.identical
+        ? `<span><span class="chip model"></span>what the model expects</span>`
+        : `<span><span class="chip model"></span>mixed coins, expected</span>`
+        + `<span><span class="chip ident"></span>if every coin were identical</span>`);
+      $('chartLegend').innerHTML = bits.join('');
+      $('chartTitle').textContent = sr.rate
+        ? 'What share of the survivors renew?'
+        : 'How many are still alive?';
+    }
+
+    function renderChart() {
+      const svg = $('chart');
+      const X = Math.max(8, S.round + 2);
+      const sr = chartSeries(X);
+      const { xOf, yOf, lo } = chartScales(chartFloor(sr));
+      renderChartLegend(sr);
+
+      let g = '';
+      for (let i = 0; i <= 4; i++) {
+        const p = lo + (1 - lo) * i / 4;
+        g += `<line x1="${CH.l}" y1="${yOf(p)}" x2="${CH.W - CH.r}" y2="${yOf(p)}"
+            stroke="rgba(214,226,240,${i === 0 ? 0.25 : 0.08})"/>
+          <text x="${CH.l - 8}" y="${yOf(p) + 3.5}" text-anchor="end">${Math.round(p * 100)}%</text>`;
+      }
+      const step = X > 16 ? 4 : X > 8 ? 2 : 1;
+      for (let t = 0; t <= X; t += step) {
+        g += `<text x="${xOf(t)}" y="${CH.H - 10}" text-anchor="middle">${t}</text>`;
+      }
+      g += `<text x="${(CH.l + CH.W - CH.r) / 2}" y="${CH.H + 5}" text-anchor="middle" font-size="10.5">round</text>`;
+
+      const path = pts => pts.length
+        ? 'M ' + pts.map(([t, y]) => `${xOf(t).toFixed(1)} ${yOf(y).toFixed(1)}`).join(' L ')
+        : '';
+      // both model curves sit behind the observed line
+      if (!sr.identical) {
+        g += `<path d="${path(sr.ident)}" fill="none" stroke="${CC.ident}" stroke-width="2"
+            stroke-dasharray="2 4" stroke-linecap="round" opacity=".95"/>`;
+      }
+      g += `<path d="${path(sr.model)}" fill="none" stroke="${CC.model}" stroke-width="2"
+          stroke-dasharray="6 4" opacity=".9"/>`;
+      g += `<path d="${path(sr.obs)}" fill="none" stroke="${CC.obs}" stroke-width="2.5"/>`;
+      sr.obs.forEach(([t, y]) => {
+        g += `<circle cx="${xOf(t).toFixed(1)}" cy="${yOf(y).toFixed(1)}" r="3.5"
+            fill="${CC.obs}" stroke="#0D2032" stroke-width="2"/>`;
+      });
+      g += `<g id="xhair" style="display:none">
+          <line y1="${CH.t}" y2="${CH.H - CH.b}" stroke="rgba(237,231,216,.4)"/>
+        </g>
+        <rect id="hoverpad" x="${CH.l}" y="${CH.t}" width="${CH.W - CH.l - CH.r}"
+          height="${CH.H - CH.t - CH.b}" fill="transparent"/>`;
+      svg.innerHTML = g;
+
+      const at = (pts, t) => { const hit = pts.find(p => p[0] === t); return hit ? pct(hit[1]) : '—'; };
+      const pad2 = svg.querySelector('#hoverpad'), xh = svg.querySelector('#xhair');
+      pad2.addEventListener('mousemove', e => {
+        const r = svg.getBoundingClientRect();
+        const mx = (e.clientX - r.left) * (CH.W / r.width);
+        const t = Math.max(0, Math.min(X, Math.round(((mx - CH.l) / (CH.W - CH.l - CH.r)) * X)));
+        xh.style.display = '';
+        xh.querySelector('line').setAttribute('x1', xOf(t));
+        xh.querySelector('line').setAttribute('x2', xOf(t));
+        const label = sr.rate ? 'renewed' : 'of the cohort alive';
+        const seen = at(sr.obs, t);
+        let html = `<b>Round ${t}</b><br><span class="t-sub">`;
+        html += seen === '—' ? `not flipped yet` : `<b>${seen}</b> ${label} · observed`;
+        html += `<br>${at(sr.model, t)} · ${sr.identical ? 'model' : 'mixed coins, expected'}`;
+        if (!sr.identical) html += `<br>${at(sr.ident, t)} · if coins were identical`;
+        tip.innerHTML = html + `</span>`;
+        tip.classList.add('show');
+        tip.style.left = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8) + 'px';
+        tip.style.top = (e.clientY - tip.offsetHeight - 10) + 'px';
+      });
+      pad2.addEventListener('mouseleave', () => { xh.style.display = 'none'; hideTip(); });
+    }
+
+    /* ── survivor histogram, minted cohort as persistent outline ── */
+    const HB = { W: 460, H: 250, l: 40, r: 16, t: 14, b: 30, bins: 20 };
+    function renderHist() {
+      const svg = $('hist');
+      const minted = COINS.histCounts(S.thetas, HB.bins);
+      const alive = COINS.histCounts(S.thetas.filter((_, i) => S.alive[i]), HB.bins);
+      const yMax = Math.max(1, ...minted);
+      const step = [1, 2, 5, 10, 20, 25].find(s => yMax / s <= 4) || 50;
+      const xOf = v => HB.l + v * (HB.W - HB.l - HB.r);
+      const yOf = c => HB.t + (1 - c / yMax) * (HB.H - HB.t - HB.b);
+      const bw = (HB.W - HB.l - HB.r) / HB.bins;
+
+      let g = '';
+      for (let c = 0; c <= yMax; c += step) {
+        g += `<line x1="${HB.l}" y1="${yOf(c)}" x2="${HB.W - HB.r}" y2="${yOf(c)}"
+            stroke="rgba(214,226,240,${c === 0 ? 0.25 : 0.08})"/>
+          <text x="${HB.l - 8}" y="${yOf(c) + 3.5}" text-anchor="end">${c}</text>`;
+      }
+      for (const v of [0, 0.25, 0.5, 0.75, 1]) {
+        g += `<text x="${xOf(v)}" y="${HB.H - 10}" text-anchor="middle">${v * 100}%</text>`;
+      }
+      g += `<text x="${(HB.l + HB.W - HB.r) / 2}" y="${HB.H + 5}" text-anchor="middle"
+          font-size="10.5">coin’s P(death)</text>`;
+
+      // filled bars: survivors, colored by the coin ramp at each bin's center
+      alive.forEach((c, i) => {
+        if (!c) return;
+        const x = xOf(i / HB.bins) + 1, w = bw - 2, y = yOf(c), h = yOf(0) - y;
+        const r = Math.min(3, h);
+        g += `<path d="M ${x} ${yOf(0)} V ${y + r} Q ${x} ${y} ${x + r} ${y}
+            H ${x + w - r} Q ${x + w} ${y} ${x + w} ${y + r} V ${yOf(0)} Z"
+            fill="${hex(rampColor((i + 0.5) / HB.bins))}"/>`;
+      });
+
+      // persistent outline: the cohort as minted (stepped skyline)
+      let d = `M ${xOf(0)} ${yOf(0)}`;
+      minted.forEach((c, i) => { d += ` V ${yOf(c)} H ${xOf((i + 1) / HB.bins)}`; });
+      d += ` V ${yOf(0)}`;
+      g += `<path d="${d}" fill="none" stroke="#EDE7D8" stroke-width="1.5"
+          stroke-linejoin="miter" opacity=".85"/>`;
+
+      // per-bin hover targets
+      minted.forEach((m, i) => {
+        g += `<rect class="binpad" data-i="${i}" x="${xOf(i / HB.bins)}" y="${HB.t}"
+            width="${bw}" height="${HB.H - HB.t - HB.b}" fill="transparent"/>`;
+      });
+      svg.innerHTML = g;
+
+      svg.querySelectorAll('.binpad').forEach(rect => {
+        rect.addEventListener('mousemove', e => {
+          const i = +rect.dataset.i;
+          const lo = i * 100 / HB.bins, hi2 = (i + 1) * 100 / HB.bins;
+          tip.innerHTML = `<b>P(death) ${lo}–${hi2}%</b><br>
+        <span class="t-sub">minted: ${minted[i]} coin${minted[i] === 1 ? '' : 's'} ·
+        alive now: <b>${alive[i]}</b></span>`;
+          tip.classList.add('show');
+          tip.style.left = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8) + 'px';
+          tip.style.top = (e.clientY - tip.offsetHeight - 10) + 'px';
+        });
+        rect.addEventListener('mouseleave', hideTip);
+      });
+    }
+
+    /* ── stats + story ── */
+    function updateAll() {
+      const aliveN = S.alive.filter(Boolean).length;
+      const deadN = N - aliveN;
+      const survThetas = S.thetas.filter((_, i) => S.alive[i]);
+      const survMean = COINS.meanOf(survThetas);
+      const mintedMean = COINS.meanOf(S.thetas);
+
+      $('tRound').textContent = S.round;
+      $('tAlive').textContent = aliveN;
+      $('tAlivePct').textContent = pct(aliveN / N);
+      $('tDead').textContent = deadN;
+      $('tDeadSub').textContent = deadN ? 'so far' : ' ';
+      $('tShake').textContent = aliveN ? pct(survMean) : '—';
+      $('tShakeSub').innerHTML = S.round === 0
+        ? `minted at ${pct(mintedMean)}`
+        : `minted at ${pct(mintedMean)} <span class="down">${survMean < mintedMean - 0.002 ? '▼' : ''}</span>`;
+
+      const lucky = S.thetas.filter((t, i) => S.alive[i] && COINS.isLuckySurvivor(t, S.round)).length;
+      const unlucky = S.thetas.filter((t, i) => !S.alive[i] && COINS.isUnluckyDeath(t, S.deathRound[i])).length;
+      const story = $('story');
+      if (S.round === 0) {
+        story.innerHTML = S.het === 0
+          ? `Fresh cohort: every coin is <b>identical</b> at ${pct(S.mu)}. Flip a few rounds — no coin is lower risk than any other, so there’s no shakeout to find.`
+          : `Fresh cohort minted. Every coin already carries its fate on its face — color is its P(death). <b>Flip a round</b> and watch who drops.`;
+      } else if (!aliveN) {
+        story.innerHTML = `<b>Cohort extinct</b> after ${S.round} rounds. Reset the flips to run the same coins again — the shakeout pattern repeats, the individual fates don’t.`;
+      } else {
+        let s = `Round ${S.round}: <b>${aliveN} of ${N}</b> alive. Survivors’ average death risk is <b>${pct(survMean)}</b>` +
+          (S.round >= 1 && survMean < mintedMean - 0.002
+            ? ` — down from ${pct(mintedMean)} at mint. The at-risk red coins die first; the golden ones remain.`
+            : ` (minted at ${pct(mintedMean)}).`);
+        if (lucky || unlucky) {
+          s += ' But luck is real:';
+          if (lucky) s += ` <b>${lucky}</b> at-risk coin${lucky === 1 ? '' : 's'} ✦ still alive against the odds`;
+          if (lucky && unlucky) s += ' and';
+          if (unlucky) s += ` <b>${unlucky}</b> lower-risk coin${unlucky === 1 ? '' : 's'} died anyway`;
+          s += '.';
+        }
+        story.innerHTML = s;
+      }
+
+      $('btnFlip').disabled = !aliveN;
+      renderChart();
+      renderHist();
+    }
+
+    /* ── controls ── */
+    const SHAPE_PRESETS = ['pIdent', 'pMixed', 'pExtreme'];
+    function clearPresetHighlights() {
+      SHAPE_PRESETS.forEach(id => $(id).classList.remove('on'));
+      $('pBlueApron').classList.remove('on');
+    }
+    function setPreset(which) {
+      clearPresetHighlights();
+      $(which).classList.add('on');
+      S.het = which === 'pIdent' ? 0 : which === 'pMixed' ? 55 : 100;
+      $('hetSlider').value = S.het;
+      $('hetOut').textContent = hetWord(S.het);
+      mint(false);
+    }
+    /* The sBG fit used throughout the course: Class 7 - BG and CLV.xlsx carries
+       a = 0.6746, b = 1.2336, so mean churn a/(a+b) = 35.4% and concentration
+       a+b = 1.908. On this tool's two controls that is mu 35% and variety 80,
+       which reproduces the workbook's survival curve to within a rounding error. */
+    const BLUE_APRON = { mu: 0.35, het: 80 };
+    function setBlueApron() {
+      clearPresetHighlights();
+      $('pBlueApron').classList.add('on');
+      S.mu = BLUE_APRON.mu;
+      S.het = BLUE_APRON.het;
+      $('muSlider').value = Math.round(S.mu * 100);
+      $('muOut').textContent = pct(S.mu);
+      $('hetSlider').value = S.het;
+      $('hetOut').textContent = hetWord(S.het);
+      mint(false);
+    }
+    function setView(mode) {
+      VIEW.mode = mode;
+      $('vAlive').classList.toggle('on', mode === 'alive');
+      $('vRate').classList.toggle('on', mode === 'rate');
+      renderChart();
+    }
+    $('pIdent').addEventListener('click', () => setPreset('pIdent'));
+    $('pMixed').addEventListener('click', () => setPreset('pMixed'));
+    $('pExtreme').addEventListener('click', () => setPreset('pExtreme'));
+    $('pBlueApron').addEventListener('click', setBlueApron);
+    $('vAlive').addEventListener('click', () => setView('alive'));
+    $('vRate').addEventListener('click', () => setView('rate'));
+
+    /* Light up whichever preset the current settings happen to match. */
+    function syncPresetHighlight() {
+      clearPresetHighlights();
+      if (Math.abs(S.mu - BLUE_APRON.mu) < 1e-9 && S.het === BLUE_APRON.het) {
+        $('pBlueApron').classList.add('on');
+        return;
+      }
+      const match = S.het === 0 ? 'pIdent' : S.het === 55 ? 'pMixed' : S.het === 100 ? 'pExtreme' : null;
+      if (match) $(match).classList.add('on');
+    }
+    $('muSlider').addEventListener('input', e => {
+      S.mu = +e.target.value / 100;
+      $('muOut').textContent = pct(S.mu);
+      syncPresetHighlight();
+      mint(false);
+    });
+    $('hetSlider').addEventListener('input', e => {
+      S.het = +e.target.value;
+      $('hetOut').textContent = hetWord(S.het);
+      syncPresetHighlight();
+      mint(false);
+    });
+
+    $('btnFlip').addEventListener('click', flipRound);
+    $('btnAuto').addEventListener('click', toggleAuto);
+    $('btnReset').addEventListener('click', () => { resetFlips(); syncCoinClasses(); coinEls().forEach(el => el.classList.remove('dead')); });
+    $('btnMint').addEventListener('click', () => mint(true));
+
+    $('togSort').addEventListener('change', () => applySort(true));
+    $('togLabels').addEventListener('change', e => document.body.classList.toggle('labels-on', e.target.checked));
+    $('togLuck').addEventListener('change', e => document.body.classList.toggle('luck-on', e.target.checked));
+
+    addEventListener('scroll', hideTip, { passive: true });
+
+    mint(false);
+
+    /* deep-link params for class demos: ?rounds=5&sort=1&labels=1&mu=20&variety=55 */
+    {
+      const q = new URLSearchParams(location.search);
+      if (q.get('case') === 'blueapron') setBlueApron();
+      if (q.has('mu')) { $('muSlider').value = q.get('mu'); $('muSlider').dispatchEvent(new Event('input')); }
+      if (q.has('variety')) { $('hetSlider').value = q.get('variety'); $('hetSlider').dispatchEvent(new Event('input')); }
+      if (q.get('view') === 'rate') setView('rate');
+      if (q.get('labels') === '1') { $('togLabels').checked = true; document.body.classList.add('labels-on'); }
+      if (q.get('sort') === '1') { $('togSort').checked = true; applySort(false); }
+      const r = +q.get('rounds');
+      for (let i = 0; i < r; i++) flipRound();
+    }
+  </script>
+</body>
+
+</html>
