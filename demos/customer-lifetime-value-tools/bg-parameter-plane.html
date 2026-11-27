@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>What do gamma and delta actually do? | MKT 626</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --blue: #00274C;
+      --blue-mid: #2F65A7;
+      --blue-tint: #E7EDF4;
+      --maize: #FFCB05;
+      --maize-dark: #D9A900;
+      --maize-edge: #8A6D00;
+      --maize-tint: #FFF6D6;
+      --red: #9A3324;
+      --grey: #9AA4AE;
+      --ink: #1F2A37;
+      --muted: #5B6B7C;
+      --paper: #FAFBFC;
+      --line: #D9E0E7;
+      --shadow: 0 14px 40px rgba(0, 39, 76, .08);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--paper); color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 15px; line-height: 1.5;
+    }
+    .shell { max-width: 1320px; margin: 0 auto; padding: 28px 22px 64px; }
+    .hero { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(240px, .9fr); gap: 26px; align-items: start; padding-bottom: 18px; border-bottom: 3px solid var(--maize); margin-bottom: 20px; }
+    .eyebrow { margin: 0 0 6px; color: var(--blue-mid); font-size: .72rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin: 0; color: var(--blue); font-size: clamp(1.8rem, 3.6vw, 2.9rem); font-weight: 800; line-height: 1.07; letter-spacing: -.03em; }
+    .lede { margin: 12px 0 0; color: var(--muted); max-width: 70ch; }
+    .hero-note { border-left: 3px solid var(--maize); padding-left: 14px; font-size: .84rem; color: var(--muted); }
+    .hero-note strong { display: block; color: var(--blue); margin-bottom: 4px; }
+    .card { border: 1px solid rgba(0, 39, 76, .12); border-radius: var(--radius); background: #fff; box-shadow: var(--shadow); }
+
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 16px; overflow: hidden; }
+    .metric { padding: 14px 16px; border-right: 1px solid var(--line); }
+    .metric:last-child { border-right: 0; }
+    .metric b { display: block; color: var(--blue); font-size: 1.4rem; font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+    .metric span { display: block; margin-top: 2px; color: var(--muted); font-size: .72rem; }
+    .metric.locked b { color: #9AA6AF; font-size: .8rem; font-weight: 600; }
+
+    .stepper { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+    .step { min-height: 66px; border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 10px 12px; text-align: left; cursor: pointer; font: inherit; color: var(--ink); }
+    .step small { display: block; color: var(--muted); font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .step span { display: block; margin-top: 3px; font-weight: 650; font-size: .92rem; }
+    .step[aria-selected="true"] { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .step[aria-selected="true"] small { color: var(--maize); }
+
+    .question { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--maize-tint); border: 1px solid #F0DFA0; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; }
+    .qmark { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--maize); color: var(--maize-edge); font-weight: 800; font-size: .85rem; flex: none; }
+    .question p { margin: 0; flex: 1 1 320px; font-size: .92rem; }
+    .question button { border: 0; background: none; color: var(--blue); font: inherit; font-size: .82rem; font-weight: 650; text-decoration: underline; cursor: pointer; }
+    .answer { flex-basis: 100%; margin: 6px 0 0 !important; color: var(--muted); font-size: .85rem !important; }
+
+    .main { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 16px; align-items: start; }
+    @media (max-width: 980px) { .main { grid-template-columns: 1fr; } }
+
+    .panel-head { padding: 16px 18px 0; }
+    .panel-head h2 { margin: 0; color: var(--blue); font-size: .98rem; }
+    .panel-head p { margin: 4px 0 0; color: var(--muted); font-size: .72rem; }
+    .plane-wrap { padding: 8px 14px 4px; }
+    #plane { display: block; width: 100%; height: auto; touch-action: none; cursor: crosshair; }
+    .coords { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 4px 18px 14px; }
+    .coord label { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: .72rem; margin-bottom: 3px; }
+    .coord label output { color: var(--blue); font-weight: 700; font-variant-numeric: tabular-nums; }
+    .coord input { width: 100%; accent-color: var(--blue); }
+    .coord-note { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: .7rem; line-height: 1.4; }
+    .presets { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 18px 16px; }
+    .presets button { border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 5px 9px; font: inherit; font-size: .74rem; color: var(--ink); cursor: pointer; }
+    .presets button:hover { background: var(--blue-tint); }
+    .presets button.on { border-color: var(--maize-dark); background: var(--maize-tint); font-weight: 650; }
+
+    .charts { display: grid; gap: 14px; }
+    .chart-card { overflow: hidden; }
+    .chart-card[hidden] { display: none; }
+    .chart-head { padding: 14px 18px 0; }
+    .chart-head h2 { margin: 0; color: var(--blue); font-size: .95rem; }
+    .chart-head p { margin: 4px 0 0; color: var(--muted); font-size: .72rem; }
+    .chart-wrap { padding: 4px 8px 8px; overflow-x: auto; }
+    svg.chart { display: block; width: 100%; min-width: 440px; height: auto; font-family: inherit; }
+    .grid { stroke: #EDF1F5; }
+    .axis { stroke: #C6D0DA; }
+    .tick { fill: var(--muted); font-size: 10px; }
+    .chart-label { fill: var(--blue); font-size: 10.5px; font-weight: 700; }
+    .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 0 18px 4px; color: var(--muted); font-size: .72rem; }
+    .legend i { display: inline-block; width: 16px; height: 0; margin-right: 5px; vertical-align: middle; border-top: 3px solid var(--blue); }
+    .legend i.homog { border-top: 2px dashed var(--grey); }
+    .legend i.post { border-top: 3px solid var(--maize-dark); }
+    .legend i.obs { border-top: 0; height: 8px; width: 8px; border-radius: 50%; background: var(--red); }
+
+    .fitbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 18px 16px; }
+    .fitbar b { color: var(--blue); font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+    .fitbar button { border: 1px solid var(--blue); border-radius: 9px; background: var(--blue); color: #fff; padding: 7px 13px; font: inherit; font-size: .8rem; font-weight: 650; cursor: pointer; }
+    .fitbar .verdict { font-size: .8rem; color: var(--muted); }
+    .fitbar .verdict.good { color: #1F7A3D; font-weight: 650; }
+    details.method { margin-top: 18px; }
+    details.method summary { cursor: pointer; color: var(--muted); font-size: .82rem; }
+    details.method p { color: var(--muted); font-size: .82rem; max-width: 95ch; }
+    footer { margin-top: 22px; color: var(--muted); font-size: .74rem; }
+  </style>
+</head>
+<body>
+<main class="shell">
+  <header class="hero">
+    <div>
+      <p class="eyebrow">MKT 626 · Customer heterogeneity · Tool 3</p>
+      <h1>What do gamma and delta actually do?</h1>
+      <p class="lede">They are not two arbitrary numbers. Together they are the <b>shape</b> of how churn risk is spread across a cohort, and that shape is the reason aggregate retention climbs while nobody changes. Move the point and all three curves follow.</p>
+    </div>
+    <div class="hero-note"><strong>Same average, different shape</strong>Every chart also shows a cohort where everyone shares the same average churn. Where the two disagree, heterogeneity is doing the work.</div>
+  </header>
+
+  <section class="metrics card" aria-label="Current shape">
+    <div class="metric"><b id="m-mean">…</b><span>Average churn, gamma / (gamma + delta)</span></div>
+    <div class="metric"><b id="m-pol">…</b><span>Polarization, 1 / (gamma + delta + 1)</span></div>
+    <div class="metric locked" data-unlock="3"><b id="m-r1">Unlocks in step 3</b><span>Retention into month 2, r(1)</span></div>
+    <div class="metric locked" data-unlock="3"><b id="m-r12">Unlocks in step 3</b><span>Retention into month 13, r(12)</span></div>
+    <div class="metric locked" data-unlock="4"><b id="m-sse">Unlocks in step 4</b><span>Fit to Blue Apron, sum of squared error</span></div>
+  </section>
+
+  <nav class="stepper" role="tablist" aria-label="Learning steps">
+    <button class="step" type="button" role="tab" aria-selected="true" data-step="1"><small>Step 1</small><span>The mix of customers</span></button>
+    <button class="step" type="button" role="tab" aria-selected="false" data-step="2"><small>Step 2</small><span>What it does to survival</span></button>
+    <button class="step" type="button" role="tab" aria-selected="false" data-step="3"><small>Step 3</small><span>Why retention climbs</span></button>
+    <button class="step" type="button" role="tab" aria-selected="false" data-step="4"><small>Step 4</small><span>Does it fit real data?</span></button>
+  </nav>
+
+  <section class="question" aria-live="polite">
+    <span class="qmark" aria-hidden="true">?</span>
+    <p id="question-text"></p>
+    <button id="answer-toggle" type="button" aria-expanded="false">Check your thinking</button>
+    <p class="answer" id="answer-text" hidden></p>
+  </section>
+
+  <div class="main">
+    <section class="card" aria-labelledby="plane-title">
+      <div class="panel-head">
+        <h2 id="plane-title">The parameter plane</h2>
+        <p>Click or drag anywhere. Both axes are log scale, so the lines at 1 split the four shapes.</p>
+      </div>
+      <div class="plane-wrap"><svg id="plane" viewBox="0 0 340 340" role="img" aria-label="Gamma and delta parameter plane with four regions"></svg></div>
+      <div class="coords">
+        <div class="coord"><label for="gamma"><span>gamma (a)</span><output id="out-gamma"></output></label><input id="gamma" type="range" min="-1" max="1" step="0.001" value="-0.171"></div>
+        <div class="coord"><label for="delta"><span>delta (b)</span><output id="out-delta"></output></label><input id="delta" type="range" min="-1" max="1" step="0.001" value="0.091"></div>
+        <p class="coord-note" id="coord-note"></p>
+      </div>
+      <div class="presets" id="presets"></div>
+    </section>
+
+    <div class="charts">
+      <section class="chart-card card" aria-labelledby="beta-title">
+        <div class="chart-head"><h2 id="beta-title">How churn risk is spread across the cohort</h2><p>Each customer draws one churn probability from this distribution and keeps it for life.</p></div>
+        <div class="legend"><span><i></i>this cohort</span><span data-min-step="3"><i class="post"></i>survivors after n renewals</span><span><i class="homog"></i>everyone at the average</span></div>
+        <div class="chart-wrap"><svg id="beta-chart" class="chart" viewBox="0 0 560 210" role="img" aria-label="Beta distribution of churn probability"></svg></div>
+      </section>
+
+      <section class="chart-card card" id="survival-card" hidden aria-labelledby="surv-title">
+        <div class="chart-head"><h2 id="surv-title">Survivor curve</h2><p>Share of the original cohort still active. The dashed line is a cohort where everyone churns at the average rate.</p></div>
+        <div class="chart-wrap"><svg id="survival-chart" class="chart" viewBox="0 0 560 210" role="img" aria-label="Survivor curve against the homogeneous benchmark"></svg></div>
+      </section>
+
+      <section class="chart-card card" id="retention-card" hidden aria-labelledby="ret-title">
+        <div class="chart-head"><h2 id="ret-title">Retention rate</h2><p>The share of last month's survivors who stay. It climbs, and no individual customer ever changes.</p></div>
+        <div class="chart-wrap"><svg id="retention-chart" class="chart" viewBox="0 0 560 210" role="img" aria-label="Aggregate retention rate against the flat homogeneous benchmark"></svg></div>
+        <div class="coords" id="renewal-row" hidden style="grid-template-columns:1fr">
+          <div class="coord"><label for="renewals"><span>Look at the survivors after n renewals</span><output id="out-renewals"></output></label><input id="renewals" type="range" min="0" max="12" step="1" value="0"></div>
+          <p class="coord-note" id="posterior-note"></p>
+        </div>
+      </section>
+
+      <section class="chart-card card" id="fit-card" hidden aria-labelledby="fit-title">
+        <div class="chart-head"><h2 id="fit-title">Fit to the Blue Apron cohort</h2><p>The red dots are the real observed retention rates from class. Move the point to fit them by hand.</p></div>
+        <div class="legend"><span><i class="obs"></i>observed</span><span><i></i>model</span></div>
+        <div class="chart-wrap"><svg id="fit-chart" class="chart" viewBox="0 0 560 210" role="img" aria-label="Model retention against observed Blue Apron retention"></svg></div>
+        <div class="fitbar">
+          <span>Sum of squared error: <b id="fit-sse">…</b></span>
+          <span class="verdict" id="fit-verdict"></span>
+          <button id="reveal-fit" type="button">Show the fitted answer</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <details class="method">
+    <summary>Model and source notes</summary>
+    <p><strong>The model.</strong> Each customer has a churn probability that stays constant for life. Across the cohort those probabilities follow Beta(gamma, delta). Aggregate retention is r(t) = (delta + t - 1) / (gamma + delta + t - 1) and survival is the running product, S(t) = S(t-1) x r(t). Equivalently S(t) = B(gamma, delta + t) / B(gamma, delta). Averages: mean churn is gamma / (gamma + delta) and polarization is 1 / (gamma + delta + 1).</p>
+    <p><strong>Why survivors look loyal.</strong> After n renewals the customers still present are not a random sample. Their churn probabilities follow Beta(gamma, delta + n): same gamma, larger delta, so the mix has shifted toward the loyal end. Nobody changed; the churn-prone left first.</p>
+    <p><strong>Source.</strong> Observed survival comes from <code>Class 7 Data - Blue Apron.xlsx</code>, seven months carried into the <code>Blue Apron Data</code> sheet of <code>Class 7 - BG and CLV.xlsx</code>. The fitted values gamma 0.6746182701085135 and delta 1.2336012934958855 are the ones on the <code>Beta Geometric (BG)</code> sheet, found there with Solver by minimising squared error on retention rates for t = 1 to 6. This tool computes the same objective, so the number here matches the workbook.</p>
+  </details>
+  <footer>Self-contained teaching prototype · No data leaves this file · Built for MKT 626 at Michigan Ross</footer>
+</main>
+
+<script>
+/*MATH-CORE-START*/
+'use strict';
+const BGShape = (() => {
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, Number(v)));
+
+  function lnGamma(x) {
+    const c = [676.5203681218851, -1259.1392167224028, 771.32342877765313,
+      -176.61502916214059, 12.507343278686905, -0.13857109526572012,
+      9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - lnGamma(1 - x);
+    x -= 1;
+    let a = 0.99999999999980993;
+    const t = x + 7.5;
+    for (let i = 0; i < 8; i++) a += c[i] / (x + i + 1);
+    return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+  }
+  const lnBeta = (a, b) => lnGamma(a) + lnGamma(b) - lnGamma(a + b);
+
+  // Beta density. Returns Infinity at the edges when the shape parameter is below 1,
+  // which is real: those cohorts pile mass arbitrarily close to 0 or 1.
+  function betaPdf(x, a, b) {
+    if (x <= 0 || x >= 1) return Infinity;
+    return Math.exp((a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) - lnBeta(a, b));
+  }
+  // Sampled on an open grid and scaled so the peak is 1, which keeps a spike drawable.
+  function densityGrid(a, b, n = 240) {
+    const xs = [], ys = [];
+    let max = 0;
+    for (let i = 0; i <= n; i++) {
+      const x = 0.002 + (0.996 * i) / n;
+      const y = betaPdf(x, a, b);
+      xs.push(x); ys.push(y);
+      if (Number.isFinite(y) && y > max) max = y;
+    }
+    return { xs, ys: ys.map(y => (Number.isFinite(y) && max > 0 ? y / max : (y === Infinity ? 1 : 0))) };
+  }
+
+  const survival = (a, b, t) => (t <= 0 ? 1 : Math.exp(lnBeta(a, b + t) - lnBeta(a, b)));
+  const retention = (a, b, t) => (b + t - 1) / (a + b + t - 1);
+  const meanChurn = (a, b) => a / (a + b);
+  const polarization = (a, b) => 1 / (a + b + 1);
+
+  // Two coordinate systems on the same object. Polarization fixes the concentration
+  // gamma + delta; the mean then splits it between the two parameters.
+  function fromMeanPolarization(mean, pol) {
+    const K = 1 / pol - 1;
+    return { a: mean * K, b: (1 - mean) * K };
+  }
+
+  // Benchmark cohort: everyone shares one churn probability equal to this cohort's mean.
+  const homogeneousSurvival = (theta, t) => Math.pow(1 - theta, t);
+
+  // Survivors after n renewals are Beta(gamma, delta + n): same gamma, larger delta.
+  const posterior = (a, b, n) => ({ a, b: b + n });
+
+  // Observed Blue Apron survival, Class 7 Data - Blue Apron.xlsx, months 0 to 6.
+  const BLUE_APRON_SURVIVAL = [1, 0.6425963478611785, 0.5022775423728814,
+    0.4145782889426957, 0.355580609362389, 0.31093371670702175, 0.282232142857143];
+  const BLUE_APRON_FIT = { a: 0.6746182701085135, b: 1.2336012934958855 };
+
+  function observedRetention() {
+    const r = [];
+    for (let t = 1; t < BLUE_APRON_SURVIVAL.length; t++) {
+      r.push(BLUE_APRON_SURVIVAL[t] / BLUE_APRON_SURVIVAL[t - 1]);
+    }
+    return r;
+  }
+  // Same objective the workbook minimises with Solver: squared error on retention
+  // rates for t = 1 to 6, not on the survival levels.
+  function sse(a, b) {
+    const obs = observedRetention();
+    let total = 0;
+    for (let t = 1; t <= obs.length; t++) {
+      const d = obs[t - 1] - retention(a, b, t);
+      total += d * d;
+    }
+    return total;
+  }
+
+  function shapeName(a, b) {
+    const lo = 0.995, hi = 1.005;
+    if (a > lo && a < hi && b > lo && b < hi) return 'flat: every risk equally likely';
+    if (a < 1 && b < 1) return 'polarized: two camps at the extremes';
+    if (a < 1 && b >= 1) return 'mostly loyal, with a risky tail';
+    if (a >= 1 && b < 1) return 'mostly churn-prone';
+    return 'clustered near the average';
+  }
+
+  return { clamp, lnGamma, lnBeta, betaPdf, densityGrid, survival, retention,
+    meanChurn, polarization, fromMeanPolarization, homogeneousSurvival, posterior,
+    observedRetention, sse, shapeName, BLUE_APRON_SURVIVAL, BLUE_APRON_FIT };
+})();
+/*MATH-CORE-END*/
+
+(() => {
+  const $ = s => document.querySelector(s);
+  const $$ = s => [...document.querySelectorAll(s)];
+  const pct = (v, d = 1) => `${(v * 100).toFixed(d)}%`;
+  const num = (v, d = 3) => v.toFixed(d);
+  const M = BGShape;
+
+  const GMIN = 0.1, GMAX = 10;
+  const L = Math.log10(GMIN), R = Math.log10(GMAX);
+  const toLog = v => (Math.log10(v) - L) / (R - L);
+  const fromLog = u => Math.pow(10, L + u * (R - L));
+
+  const initialStep = Math.min(4, Math.max(1, Number(location.hash.match(/step-(\d+)/)?.[1] || 1)));
+  const state = { step: initialStep, a: M.BLUE_APRON_FIT.a, b: M.BLUE_APRON_FIT.b,
+    renewals: 0, dragging: false };
+
+  const PRESETS = [
+    { key: 'blueapron', label: 'Blue Apron fit', a: M.BLUE_APRON_FIT.a, b: M.BLUE_APRON_FIT.b },
+    { key: 'polarized', label: 'Polarized', a: 0.3, b: 0.4 },
+    { key: 'loyal', label: 'Mostly loyal', a: 0.5, b: 4 },
+    { key: 'churny', label: 'Mostly churn-prone', a: 4, b: 0.5 },
+    { key: 'clustered', label: 'Near-identical', a: 6, b: 11 },
+    { key: 'flat', label: 'Flat', a: 1, b: 1 }
+  ];
+
+  const questions = {
+    1: () => ({
+      q: 'Two cohorts can share the same average churn and still look nothing alike. What else has to be true for that?',
+      a: 'The spread. Average churn is gamma / (gamma + delta), and many pairs give the same average. Polarization, 1 / (gamma + delta + 1), decides whether customers cluster near that average or split into camps. Try Polarized and Near-identical: the average barely moves, the shape changes completely.'
+    }),
+    2: () => ({
+      q: 'You are about to compare this cohort with one where everyone churns at exactly the average rate. Which one keeps more customers alive at month 12, or is it a tie?',
+      a: 'The mixed cohort, always, unless there is no spread at all. High-risk customers leave early, so the survivors are increasingly the low-risk ones and the curve flattens out above the benchmark. A model without heterogeneity understates how much of the cohort is still there later.'
+    }),
+    3: () => ({
+      q: 'Aggregate retention climbs month after month. Which customers changed their behaviour to make that happen?',
+      a: 'None of them. Every customer keeps the churn probability they were born with. The mix changes, not the customers: after n renewals the survivors follow Beta(gamma, delta + n), the same gamma with a larger delta, which is shifted toward the loyal end. Drag the renewals slider and watch the distribution slide left.'
+    }),
+    // The multiple is computed rather than written down, so the sentence can never
+    // drift away from what the tool actually shows.
+    4: () => {
+      const tight = PRESETS.find(p => p.key === 'clustered');
+      const ratio = M.sse(tight.a, tight.b) / M.sse(M.BLUE_APRON_FIT.a, M.BLUE_APRON_FIT.b);
+      return {
+        q: 'Set the shape to Near-identical, which has almost no spread, and read the error. Then press the reveal button. How much of the fit is heterogeneity actually buying?',
+        a: `About two orders of magnitude. Near-identical carries almost the same average churn as the fitted shape, ${pct(M.meanChurn(tight.a, tight.b))} against ${pct(M.meanChurn(M.BLUE_APRON_FIT.a, M.BLUE_APRON_FIT.b))}, yet it misses the observed curve about ${Math.round(ratio)} times worse. Heterogeneity is not a refinement here. It is the difference between a model that tracks the data and one that does not.`
+      };
+    }
+  };
+
+  /* ---------- chart helpers ---------- */
+  function niceTicks(min, max, target) {
+    const span = max - min;
+    if (!(span > 0) || !Number.isFinite(span)) return [min];
+    const rough = span / target;
+    const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+    const step = ([1, 2, 2.5, 5, 10].find(m => m * mag >= rough * 0.9) || 10) * mag;
+    const out = [];
+    for (let v = Math.ceil(min / step) * step; v <= max + step * 1e-9; v += step) {
+      out.push(Math.abs(v) < step * 1e-9 ? 0 : v);
+    }
+    return out.length ? out : [min, max];
+  }
+  function frame({ W = 560, H = 210, left = 46, right = 16, top = 14, bottom = 34,
+    xMin, xMax, yMin, yMax, xLabel = '', yLabel = '', xFmt = v => v, yFmt = v => v,
+    yGrid = true }) {
+    const x = v => left + (v - xMin) / (xMax - xMin) * (W - left - right);
+    const y = v => top + (yMax - v) / (yMax - yMin) * (H - top - bottom);
+    const parts = [];
+    // A density has no meaningful vertical scale, so that chart asks for no y gridlines
+    // rather than drawing unlabelled ones.
+    if (yGrid) for (const v of niceTicks(yMin, yMax, 4)) {
+      parts.push(`<line class="grid" x1="${left}" y1="${y(v)}" x2="${W - right}" y2="${y(v)}"/>` +
+        `<text class="tick" x="${left - 7}" y="${y(v) + 3.5}" text-anchor="end">${yFmt(v)}</text>`);
+    }
+    for (const v of niceTicks(xMin, xMax, 6)) {
+      parts.push(`<line class="grid" x1="${x(v)}" y1="${top}" x2="${x(v)}" y2="${H - bottom}"/>` +
+        `<text class="tick" x="${x(v)}" y="${H - 18}" text-anchor="middle">${xFmt(v)}</text>`);
+    }
+    parts.push(`<line class="axis" x1="${left}" y1="${H - bottom}" x2="${W - right}" y2="${H - bottom}"/>` +
+      `<line class="axis" x1="${left}" y1="${top}" x2="${left}" y2="${H - bottom}"/>` +
+      `<text class="chart-label" x="${(left + W - right) / 2}" y="${H - 3}" text-anchor="middle">${xLabel}</text>` +
+      `<text class="chart-label" transform="translate(11 ${(top + H - bottom) / 2}) rotate(-90)" text-anchor="middle">${yLabel}</text>`);
+    return { x, y, parts, W, H, left, right, top, bottom };
+  }
+  const path = (pts, f) => pts.length
+    ? 'M ' + pts.map(([px, py]) => `${f.x(px).toFixed(1)} ${f.y(py).toFixed(1)}`).join(' L ')
+    : '';
+
+  /* ---------- the parameter plane ---------- */
+  function renderPlane() {
+    const S = 340, pad = 40;
+    const px = g => pad + toLog(g) * (S - pad - 16);
+    const py = d => (S - pad) - toLog(d) * (S - pad - 16);
+    const p = [];
+    p.push(`<rect x="${pad}" y="16" width="${S - pad - 16}" height="${S - pad - 16}" fill="#fff" stroke="#C6D0DA"/>`);
+    // quadrant shading and dividers at 1
+    p.push(`<line x1="${px(1)}" y1="16" x2="${px(1)}" y2="${S - pad}" stroke="${'#2F65A7'}" stroke-dasharray="4 3" opacity=".55"/>`);
+    p.push(`<line x1="${pad}" y1="${py(1)}" x2="${S - 16}" y2="${py(1)}" stroke="${'#2F65A7'}" stroke-dasharray="4 3" opacity=".55"/>`);
+    const quads = [
+      [0.3, 3.2, 'mostly', 'loyal'],
+      [3.2, 3.2, 'near-', 'identical'],
+      [0.3, 0.3, 'polar-', 'ized'],
+      [3.2, 0.3, 'mostly', 'churn-prone']
+    ];
+    for (const [qa, qb, l1, l2] of quads) {
+      p.push(`<text class="tick" x="${px(qa)}" y="${py(qb)}" text-anchor="middle" opacity=".75">${l1}</text>` +
+        `<text class="tick" x="${px(qa)}" y="${py(qb) + 11}" text-anchor="middle" opacity=".75">${l2}</text>`);
+    }
+    for (const v of [0.1, 0.3, 1, 3, 10]) {
+      p.push(`<text class="tick" x="${px(v)}" y="${S - pad + 14}" text-anchor="middle">${v}</text>`);
+      p.push(`<text class="tick" x="${pad - 6}" y="${py(v) + 3.5}" text-anchor="end">${v}</text>`);
+    }
+    p.push(`<text class="chart-label" x="${(pad + S - 16) / 2}" y="${S - 6}" text-anchor="middle">gamma (a), higher is more churn-y</text>`);
+    p.push(`<text class="chart-label" transform="translate(11 ${(16 + S - pad) / 2}) rotate(-90)" text-anchor="middle">delta (b), higher is more retain-y</text>`);
+    // the fitted point, always shown as a reference
+    const F = M.BLUE_APRON_FIT;
+    p.push(`<circle cx="${px(F.a)}" cy="${py(F.b)}" r="4.5" fill="none" stroke="${'#9A3324'}" stroke-width="1.6"/>`);
+    p.push(`<text class="tick" x="${px(F.a) + 7}" y="${py(F.b) - 5}" fill="${'#9A3324'}">Blue Apron</text>`);
+    // current position
+    p.push(`<line x1="${px(state.a)}" y1="${py(state.b)}" x2="${px(state.a)}" y2="${S - pad}" stroke="#00274C" stroke-dasharray="2 3" opacity=".4"/>`);
+    p.push(`<line x1="${pad}" y1="${py(state.b)}" x2="${px(state.a)}" y2="${py(state.b)}" stroke="#00274C" stroke-dasharray="2 3" opacity=".4"/>`);
+    p.push(`<circle cx="${px(state.a)}" cy="${py(state.b)}" r="8" fill="#FFCB05" stroke="#8A6D00" stroke-width="2"/>`);
+    $('#plane').innerHTML = p.join('');
+  }
+  function planeFromEvent(ev) {
+    const svg = $('#plane'), rect = svg.getBoundingClientRect();
+    const S = 340, pad = 40;
+    const sx = (ev.clientX - rect.left) / rect.width * S;
+    const sy = (ev.clientY - rect.top) / rect.height * S;
+    const ua = (sx - pad) / (S - pad - 16);
+    const ub = ((S - pad) - sy) / (S - pad - 16);
+    state.a = M.clamp(fromLog(M.clamp(ua, 0, 1)), GMIN, GMAX);
+    state.b = M.clamp(fromLog(M.clamp(ub, 0, 1)), GMIN, GMAX);
+    render();
+  }
+
+  /* ---------- charts ---------- */
+  function renderBeta() {
+    const g = M.densityGrid(state.a, state.b);
+    const f = frame({ H: 210, xMin: 0, xMax: 1, yMin: 0, yMax: 1.08, yGrid: false,
+      xLabel: 'churn probability of one customer', yLabel: 'relative frequency',
+      xFmt: v => pct(v, 0) });
+    const pts = g.xs.map((x, i) => [x, g.ys[i]]);
+    f.parts.push(`<path d="${path(pts, f)}" fill="none" stroke="#00274C" stroke-width="2.4"/>`);
+    if (state.step >= 3 && state.renewals > 0) {
+      const post = M.posterior(state.a, state.b, state.renewals);
+      const gp = M.densityGrid(post.a, post.b);
+      f.parts.push(`<path d="${path(gp.xs.map((x, i) => [x, gp.ys[i]]), f)}" fill="none" stroke="#D9A900" stroke-width="2.4"/>`);
+      const mp = M.meanChurn(post.a, post.b);
+      f.parts.push(`<line x1="${f.x(mp)}" y1="${f.top}" x2="${f.x(mp)}" y2="${f.y(0)}" stroke="#D9A900" stroke-dasharray="3 3"/>`);
+    }
+    const mean = M.meanChurn(state.a, state.b);
+    f.parts.push(`<line x1="${f.x(mean)}" y1="${f.top}" x2="${f.x(mean)}" y2="${f.y(0)}" stroke="#9AA4AE" stroke-dasharray="4 3" stroke-width="2"/>`);
+    f.parts.push(`<text class="tick" x="${f.x(mean) + 5}" y="${f.top + 11}" fill="#5B6B7C">average ${pct(mean)}</text>`);
+    $('#beta-chart').innerHTML = f.parts.join('');
+  }
+
+  function renderSurvival() {
+    const T = 24, theta = M.meanChurn(state.a, state.b);
+    const f = frame({ xMin: 0, xMax: T, yMin: 0, yMax: 1,
+      xLabel: 'months since acquisition', yLabel: 'S(t)',
+      xFmt: v => Math.round(v), yFmt: v => pct(v, 0) });
+    const bg = [], hom = [];
+    for (let t = 0; t <= T; t++) { bg.push([t, M.survival(state.a, state.b, t)]); hom.push([t, M.homogeneousSurvival(theta, t)]); }
+    f.parts.push(`<path d="${path(hom, f)}" fill="none" stroke="#9AA4AE" stroke-width="2" stroke-dasharray="5 4"/>`);
+    f.parts.push(`<path d="${path(bg, f)}" fill="none" stroke="#00274C" stroke-width="2.6"/>`);
+    const gap = M.survival(state.a, state.b, 12) - M.homogeneousSurvival(theta, 12);
+    f.parts.push(`<text class="tick" x="${f.W - f.right - 4}" y="${f.top + 12}" text-anchor="end" fill="#5B6B7C">` +
+      `at month 12: ${pct(M.survival(state.a, state.b, 12))} vs ${pct(M.homogeneousSurvival(theta, 12))}` +
+      `${gap > 0.001 ? ` (+${pct(gap)})` : ''}</text>`);
+    $('#survival-chart').innerHTML = f.parts.join('');
+  }
+
+  function renderRetention() {
+    const T = 24, theta = M.meanChurn(state.a, state.b);
+    const rs = [];
+    for (let t = 1; t <= T; t++) rs.push(M.retention(state.a, state.b, t));
+    const lo = Math.min(theta > 0 ? 1 - theta : 1, ...rs);
+    const yMin = Math.max(0, Math.floor((lo - 0.05) * 10) / 10);
+    const f = frame({ xMin: 1, xMax: T, yMin, yMax: 1,
+      xLabel: 'month t', yLabel: 'r(t)', xFmt: v => Math.round(v), yFmt: v => pct(v, 0) });
+    f.parts.push(`<path d="${path(rs.map((r, i) => [i + 1, Math.max(yMin, r)]), f)}" fill="none" stroke="#00274C" stroke-width="2.6"/>`);
+    f.parts.push(`<path d="${path(rs.map((_, i) => [i + 1, Math.max(yMin, 1 - theta)]), f)}" fill="none" stroke="#9AA4AE" stroke-width="2" stroke-dasharray="5 4"/>`);
+    if (state.step >= 3 && state.renewals > 0) {
+      const t = Math.min(T, state.renewals + 1);
+      f.parts.push(`<circle cx="${f.x(t)}" cy="${f.y(Math.max(yMin, M.retention(state.a, state.b, t)))}" r="5.5" fill="#D9A900" stroke="#8A6D00" stroke-width="1.6"/>`);
+    }
+    $('#retention-chart').innerHTML = f.parts.join('');
+  }
+
+  function renderFit() {
+    const obs = M.observedRetention();
+    const T = obs.length;
+    const all = obs.concat(Array.from({ length: T }, (_, i) => M.retention(state.a, state.b, i + 1)));
+    const yMin = Math.max(0, Math.floor((Math.min(...all) - 0.05) * 10) / 10);
+    const f = frame({ xMin: 1, xMax: T, yMin, yMax: 1,
+      xLabel: 'month t', yLabel: 'r(t)', xFmt: v => Math.round(v), yFmt: v => pct(v, 0) });
+    const model = obs.map((_, i) => [i + 1, Math.max(yMin, M.retention(state.a, state.b, i + 1))]);
+    f.parts.push(`<path d="${path(model, f)}" fill="none" stroke="#00274C" stroke-width="2.6"/>`);
+    obs.forEach((r, i) => {
+      const x = f.x(i + 1), y = f.y(Math.max(yMin, r));
+      f.parts.push(`<line x1="${x}" y1="${y}" x2="${x}" y2="${f.y(Math.max(yMin, M.retention(state.a, state.b, i + 1)))}" stroke="#9A3324" stroke-width="1" opacity=".5"/>`);
+      f.parts.push(`<circle cx="${x}" cy="${y}" r="4.5" fill="#9A3324"/>`);
+    });
+    $('#fit-chart').innerHTML = f.parts.join('');
+  }
+
+  /* ---------- shell ---------- */
+  function renderPresets() {
+    const host = $('#presets');
+    if (!host.childElementCount) {
+      for (const p of PRESETS) {
+        const b = document.createElement('button');
+        b.type = 'button'; b.dataset.key = p.key; b.textContent = p.label;
+        b.addEventListener('click', () => { state.a = p.a; state.b = p.b; render(); });
+        host.appendChild(b);
+      }
+    }
+    for (const b of host.children) {
+      const p = PRESETS.find(x => x.key === b.dataset.key);
+      b.classList.toggle('on', Math.abs(p.a - state.a) < 1e-9 && Math.abs(p.b - state.b) < 1e-9);
+    }
+  }
+
+  function setStep(n) {
+    state.step = Number(n);
+    $$('.step').forEach(b => {
+      const on = Number(b.dataset.step) === state.step;
+      b.setAttribute('aria-selected', String(on));
+      b.tabIndex = on ? 0 : -1;
+    });
+    $('#answer-text').hidden = true;
+    $('#answer-toggle').setAttribute('aria-expanded', 'false');
+    $('#answer-toggle').textContent = 'Check your thinking';
+    render();
+  }
+
+  function render() {
+    const a = state.a, b = state.b;
+    $('#gamma').value = toLog(a) * 2 - 1;
+    $('#delta').value = toLog(b) * 2 - 1;
+    $('#out-gamma').textContent = num(a);
+    $('#out-delta').textContent = num(b);
+    $('#m-mean').textContent = pct(M.meanChurn(a, b));
+    $('#m-pol').textContent = num(M.polarization(a, b));
+    $('#m-r1').textContent = state.step >= 3 ? pct(M.retention(a, b, 1)) : 'Unlocks in step 3';
+    $('#m-r12').textContent = state.step >= 3 ? pct(M.retention(a, b, 12)) : 'Unlocks in step 3';
+    const sse = M.sse(a, b);
+    $('#m-sse').textContent = state.step >= 4 ? sse.toExponential(2) : 'Unlocks in step 4';
+    $$('[data-unlock]').forEach(el => el.classList.toggle('locked', state.step < Number(el.dataset.unlock)));
+    $('#coord-note').innerHTML = `Shape: <b>${M.shapeName(a, b)}</b>. Average churn and polarization are just another way of naming the same point: gamma + delta = ${num(a + b, 2)} sets the spread, and how it splits sets the average.`;
+
+    const q = questions[state.step]();
+    $('#question-text').textContent = q.q;
+    $('#answer-text').textContent = q.a;
+
+    renderPlane();
+    renderPresets();
+    renderBeta();
+    $('#survival-card').hidden = state.step < 2;
+    $('#retention-card').hidden = state.step < 3;
+    $('#renewal-row').hidden = state.step < 3;
+    $('#fit-card').hidden = state.step < 4;
+    $$('[data-min-step]').forEach(el => { el.hidden = state.step < Number(el.dataset.minStep); });
+    if (state.step >= 2) renderSurvival();
+    if (state.step >= 3) {
+      renderRetention();
+      $('#out-renewals').textContent = state.renewals === 0 ? 'not yet' : `${state.renewals} renewal${state.renewals === 1 ? '' : 's'}`;
+      const post = M.posterior(a, b, state.renewals);
+      $('#posterior-note').innerHTML = state.renewals === 0
+        ? 'Slide right to keep only the customers who survived that many renewals.'
+        : `Survivors after ${state.renewals} follow Beta(${num(post.a, 2)}, ${num(post.b, 2)}): same gamma, delta up by ${state.renewals}. Their average churn is <b>${pct(M.meanChurn(post.a, post.b))}</b>, down from ${pct(M.meanChurn(a, b))}. Nobody changed.`;
+    }
+    if (state.step >= 4) {
+      renderFit();
+      $('#fit-sse').textContent = sse.toExponential(2);
+      const best = M.sse(M.BLUE_APRON_FIT.a, M.BLUE_APRON_FIT.b);
+      const ratio = sse / best;
+      const v = $('#fit-verdict');
+      v.textContent = ratio < 1.05 ? 'That is the best fit available.'
+        : ratio < 3 ? `Close: about ${ratio.toFixed(1)}x the best possible error.`
+        : `About ${ratio < 10 ? ratio.toFixed(1) : Math.round(ratio)}x worse than the best fit.`;
+      v.classList.toggle('good', ratio < 1.05);
+    }
+  }
+
+  /* ---------- wiring ---------- */
+  $$('.step').forEach(b => b.addEventListener('click', () => setStep(b.dataset.step)));
+  $('#gamma').addEventListener('input', e => { state.a = M.clamp(fromLog((Number(e.target.value) + 1) / 2), GMIN, GMAX); render(); });
+  $('#delta').addEventListener('input', e => { state.b = M.clamp(fromLog((Number(e.target.value) + 1) / 2), GMIN, GMAX); render(); });
+  $('#renewals').addEventListener('input', e => { state.renewals = Number(e.target.value); render(); });
+  $('#reveal-fit').addEventListener('click', () => { state.a = M.BLUE_APRON_FIT.a; state.b = M.BLUE_APRON_FIT.b; render(); });
+  $('#answer-toggle').addEventListener('click', () => {
+    const el = $('#answer-text'), open = el.hidden;
+    el.hidden = !open;
+    $('#answer-toggle').setAttribute('aria-expanded', String(open));
+    $('#answer-toggle').textContent = open ? 'Hide explanation' : 'Check your thinking';
+  });
+  const plane = $('#plane');
+  plane.addEventListener('pointerdown', e => { state.dragging = true; plane.setPointerCapture(e.pointerId); planeFromEvent(e); });
+  plane.addEventListener('pointermove', e => { if (state.dragging) planeFromEvent(e); });
+  plane.addEventListener('pointerup', e => { state.dragging = false; try { plane.releasePointerCapture(e.pointerId); } catch (_) {} });
+  plane.addEventListener('pointercancel', () => { state.dragging = false; });
+  document.addEventListener('keydown', ev => {
+    if (!ev.target.classList.contains('step') || !['ArrowLeft', 'ArrowRight'].includes(ev.key)) return;
+    ev.preventDefault();
+    const next = Math.min(4, Math.max(1, state.step + (ev.key === 'ArrowRight' ? 1 : -1)));
+    setStep(next);
+    $(`.step[data-step="${next}"]`).focus();
+  });
+
+  setStep(state.step);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>When does the money arrive? | MKT 626</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --blue: #00274C;
+      --blue-mid: #2F65A7;
+      --blue-tint: #E7EDF4;
+      --maize: #FFCB05;
+      --maize-dark: #D9A900;
+      --maize-edge: #8A6D00;
+      --maize-tint: #FFF6D6;
+      --red: #9A3324;
+      --ink: #1F2A37;
+      --muted: #5B6B7C;
+      --paper: #FAFBFC;
+      --line: #D9E0E7;
+      --shadow: 0 14px 40px rgba(0, 39, 76, .08);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    :focus-visible { outline: 3px solid rgba(47, 101, 167, .45); outline-offset: 3px; }
+
+    .shell { width: min(1240px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 64px; }
+
+    .hero { display: grid; grid-template-columns: 1.5fr .7fr; gap: 28px; align-items: end; margin-bottom: 22px; padding-bottom: 20px; border-bottom: 4px solid var(--maize); }
+    .eyebrow { margin: 0 0 8px; color: var(--blue-mid); font-size: .76rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+    h1 { max-width: 820px; margin: 0; color: var(--blue); font-family: inherit; font-size: clamp(2rem, 4.3vw, 3.5rem); font-weight: 800; line-height: 1.06; letter-spacing: -.035em; }
+    .lede { max-width: 680px; margin: 16px 0 0; color: var(--muted); font-size: 1.03rem; }
+    .hero-note { border-left: 3px solid var(--maize); padding: 6px 0 6px 18px; color: var(--muted); font-size: .89rem; }
+    .hero-note strong { display: block; margin-bottom: 4px; color: var(--blue); }
+
+    .card { border: 1px solid rgba(0, 39, 76, .12); border-radius: var(--radius); background: #fff; box-shadow: var(--shadow); }
+
+    .settings { padding: 18px; }
+    .settings-head { display: flex; gap: 16px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .settings h2, .visual h2, .table-wrap h2 { margin: 0; color: var(--blue); font-size: 1rem; }
+    .source-pill { border-radius: 999px; background: var(--blue-tint); padding: 5px 10px; color: var(--blue); font-size: .72rem; font-weight: 700; }
+    .controls { display: grid; grid-template-columns: repeat(6, minmax(125px, 1fr)); gap: 12px; }
+    .control { min-width: 0; border-left: 1px solid var(--line); padding-left: 12px; }
+    .control:first-child { border-left: 0; padding-left: 0; }
+    .control label { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 7px; color: var(--muted); font-size: .73rem; font-weight: 700; }
+    .control output { color: var(--ink); font-variant-numeric: tabular-nums; }
+    input[type="range"] { width: 100%; accent-color: var(--blue-mid); }
+
+    .metric-strip { display: grid; grid-template-columns: repeat(5, 1fr); margin: 14px 0 22px; overflow: hidden; }
+    .metric { min-height: 90px; border-right: 1px solid var(--line); padding: 16px 18px; }
+    .metric:last-child { border-right: 0; }
+    .metric b { display: block; color: var(--blue); font-family: inherit; font-size: 1.5rem; font-weight: 750; letter-spacing: -.02em; line-height: 1.15; font-variant-numeric: tabular-nums; }
+    .metric span { display: block; margin-top: 6px; color: var(--muted); font-size: .73rem; }
+    .metric.is-locked b { color: #9AA5AF; font-family: inherit; font-size: .82rem; }
+
+    .stepper { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0 0 14px; }
+    .step { min-height: 66px; border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 10px 12px; text-align: left; cursor: pointer; }
+    .step small { display: block; color: var(--muted); font-size: .65rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .step span { display: block; margin-top: 4px; font-size: .83rem; font-weight: 700; }
+    .step[aria-selected="true"] { border-color: var(--blue); background: var(--blue); color: #fff; box-shadow: 0 8px 22px rgba(0, 39, 76, .25); }
+    .step[aria-selected="true"] small { color: var(--maize); }
+
+    .question { display: grid; grid-template-columns: auto 1fr auto; gap: 13px; align-items: center; margin-bottom: 14px; padding: 14px 16px; border: 1px solid #EAD98F; border-radius: 14px; background: var(--maize-tint); }
+    .question .qmark { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 50%; background: var(--maize); color: var(--blue); font-weight: 900; }
+    .question p { margin: 0; font-size: .89rem; }
+    .question button { border: 0; border-bottom: 1px solid currentColor; background: transparent; padding: 2px; color: #6E5600; font-size: .77rem; font-weight: 800; cursor: pointer; }
+    .answer { grid-column: 2 / -1; margin: 0; padding-top: 10px; border-top: 1px solid #EAD98F; color: #5B4A10; font-size: .84rem; }
+    .answer[hidden] { display: none; }
+
+    .visual { overflow: hidden; }
+    .visual-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 17px 18px 0; }
+    .draw { border: 0; border-radius: 999px; background: var(--blue); padding: 9px 15px; color: var(--maize); font-size: .78rem; font-weight: 800; cursor: pointer; }
+    .draw:hover { background: #003a6e; }
+    .legend { display: flex; flex-wrap: wrap; gap: 13px; padding: 8px 18px 0; color: var(--muted); font-size: .72rem; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .key { width: 10px; height: 10px; border-radius: 3px; background: var(--blue); }
+    .key.txn { background: var(--maize); border: 1px solid var(--maize-edge); }
+    .key.outline { border: 2px solid #AEB9C2; background: transparent; }
+    .chart-scroll { overflow-x: auto; padding: 0 10px 4px; }
+    svg { display: block; width: 100%; min-width: 720px; height: auto; font-family: inherit; }
+    .axis { stroke: #A8B2BB; stroke-width: 1; }
+    .grid { stroke: #E9EDF1; stroke-width: 1; }
+    .tick { fill: #74828F; font-size: 11px; }
+    .lane-label { fill: var(--blue); font-size: 14px; font-weight: 800; }
+    .lane-note { fill: #71808E; font-size: 11px; }
+    .today-line { stroke: var(--red); stroke-width: 3; stroke-dasharray: 6 5; }
+
+    .today-control { display: grid; grid-template-columns: 110px 1fr 94px; gap: 12px; align-items: center; margin: 4px 18px 18px; padding: 12px 14px; border-radius: 12px; background: linear-gradient(90deg, var(--blue-tint), var(--maize-tint)); }
+    .today-control[hidden] { display: none; }
+    .today-control label { font-size: .78rem; font-weight: 800; color: var(--blue); }
+    .today-control output { text-align: right; font-size: .78rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+    .split-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+    .split-card { padding: 16px 18px; }
+    .split-card[hidden] { display: none; }
+    .split-card h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; color: var(--blue); font-size: .88rem; }
+    .split-card h3::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--blue); }
+    .split-card.txn h3::before { background: var(--maize); border: 1px solid var(--maize-edge); }
+    .split-values { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 10px; }
+    .split-note { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: .74rem; line-height: 1.45; }
+    .split-note b { color: var(--ink); }
+    .split-values b { display: block; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+    .split-values span { color: var(--muted); font-size: .69rem; }
+
+    .lower { display: grid; grid-template-columns: .95fr 1.05fr; gap: 14px; margin-top: 14px; }
+    .cumulative { padding: 17px 18px; }
+    .cumulative[hidden] { display: none; }
+    .cumulative h2 { margin: 0 0 4px; color: var(--blue); font-size: 1rem; }
+    .cumulative p { margin: 0 0 8px; color: var(--muted); font-size: .76rem; }
+    .table-wrap { min-width: 0; padding: 17px 18px; }
+    .table-wrap p { margin: 4px 0 10px; color: var(--muted); font-size: .75rem; }
+    .table-scroll { max-height: 310px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: .73rem; font-variant-numeric: tabular-nums; }
+    th { position: sticky; top: 0; z-index: 1; background: var(--blue-tint); color: var(--blue); text-align: right; }
+    th:first-child, th:nth-child(2), td:first-child, td:nth-child(2) { text-align: left; }
+    th, td { border-bottom: 1px solid #E9EDF1; padding: 8px 9px; text-align: right; white-space: nowrap; }
+    tbody tr:last-child td { border-bottom: 0; }
+    .lane-dot { display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; background: var(--blue); }
+    .lane-dot.txn { background: var(--maize); border: 1px solid var(--maize-edge); }
+
+    .method { margin-top: 14px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+    .method summary { padding: 13px 16px; color: var(--blue); font-size: .8rem; font-weight: 800; cursor: pointer; }
+    .method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; padding: 0 16px 16px; color: var(--muted); font-size: .77rem; }
+    .method-grid p { margin: 0; }
+    code { border-radius: 4px; background: var(--blue-tint); padding: 1px 4px; color: var(--blue); }
+    footer { margin-top: 20px; color: var(--muted); font-size: .7rem; text-align: center; }
+
+    @media (max-width: 980px) {
+      .hero { grid-template-columns: 1fr; }
+      .controls { grid-template-columns: repeat(3, 1fr); }
+      .control:nth-child(4) { border-left: 0; padding-left: 0; }
+      .metric-strip { grid-template-columns: repeat(3, 1fr); }
+      .metric:nth-child(3) { border-right: 0; }
+      .metric:nth-child(n+4) { border-top: 1px solid var(--line); }
+      .lower { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 680px) {
+      .shell { width: min(100% - 20px, 1240px); padding-top: 20px; }
+      h1 { font-size: 2.3rem; }
+      .controls { grid-template-columns: repeat(2, 1fr); }
+      .control:nth-child(odd) { border-left: 0; padding-left: 0; }
+      .control:nth-child(4) { border-left: 1px solid var(--line); padding-left: 12px; }
+      .metric-strip { grid-template-columns: 1fr 1fr; }
+      .metric:nth-child(odd) { border-right: 1px solid var(--line); }
+      .metric:nth-child(even) { border-right: 0; }
+      .stepper { grid-template-columns: 1fr 1fr; }
+      .question { grid-template-columns: auto 1fr; }
+      .question button { grid-column: 2; justify-self: start; }
+      .answer { grid-column: 1 / -1; }
+      .split-grid { grid-template-columns: 1fr; }
+      .today-control { grid-template-columns: 1fr; }
+      .today-control output { text-align: left; }
+      .method-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">MKT 626 · Customer value · Tool 1</p>
+        <h1>When does the money arrive?</h1>
+        <p class="lede">Two customers bring in the same expected contribution each month. One pays a subscription on a regular schedule. The other buys whenever they feel like it. Build up the picture one layer at a time and see what timing does to value.</p>
+      </div>
+      <div class="hero-note"><strong>One idea per view</strong>Both customers share the same active window, so any difference you see comes from timing, not lifetime.</div>
+    </header>
+
+    <section class="settings card" aria-labelledby="settings-title">
+      <div class="settings-head">
+        <h2 id="settings-title">Business assumptions</h2>
+        <span class="source-pill">Monthly · workbook contribution, illustrative churn</span>
+      </div>
+      <div class="controls">
+        <div class="control"><label for="aov"><span>Order value</span><output data-output="aov"></output></label><input id="aov" data-key="aov" type="range" min="20" max="100" step="0.1" value="57.3"></div>
+        <div class="control"><label for="aof"><span>Orders / month</span><output data-output="aof"></output></label><input id="aof" data-key="aof" type="range" min="0.4" max="4" step="0.1" value="1.8"></div>
+        <div class="control"><label for="margin"><span>Contribution margin</span><output data-output="margin"></output></label><input id="margin" data-key="margin" type="range" min="0.05" max="0.7" step="0.01" value="0.26"></div>
+        <div class="control"><label for="churn"><span>Monthly churn</span><output data-output="churn"></output></label><input id="churn" data-key="churn" type="range" min="0.05" max="0.5" step="0.01" value="0.18"></div>
+        <div class="control"><label for="discount"><span>Monthly discount</span><output data-output="discount"></output></label><input id="discount" data-key="discount" type="range" min="0" max="0.05" step="0.0001" value="0.0153"></div>
+        <div class="control"><label for="cac"><span>Acquisition cost</span><output data-output="cac"></output></label><input id="cac" data-key="cac" type="range" min="0" max="250" step="1" value="50"></div>
+      </div>
+    </section>
+
+    <section class="metric-strip card" aria-label="Model summary">
+      <div class="metric"><b id="metric-m">...</b><span>Expected contribution / month</span></div>
+      <div class="metric"><b id="metric-life">...</b><span>Expected active billing periods</span></div>
+      <div class="metric is-locked" data-unlock="2"><b id="metric-pav">Unlocks in step 2</b><span>Expected PAV before CAC</span></div>
+      <div class="metric is-locked" data-unlock="3"><b id="metric-clv">Unlocks in step 3</b><span>Expected CLV = PAV - CAC</span></div>
+      <div class="metric is-locked" data-unlock="3"><b id="metric-risk">Unlocks in step 3</b><span>Never cover CAC: subscription / transactional</span></div>
+    </section>
+
+    <nav class="stepper" role="tablist" aria-label="Learning steps">
+      <button class="step" type="button" role="tab" aria-selected="true" data-step="1"><small>Step 1</small><span>Cash flows arrive</span></button>
+      <button class="step" type="button" role="tab" aria-selected="false" data-step="2"><small>Step 2</small><span>Later money is worth less</span></button>
+      <button class="step" type="button" role="tab" aria-selected="false" data-step="3"><small>Step 3</small><span>You paid to acquire them</span></button>
+      <button class="step" type="button" role="tab" aria-selected="false" data-step="4"><small>Step 4</small><span>Past versus future</span></button>
+    </nav>
+
+    <section class="question" aria-live="polite">
+      <span class="qmark" aria-hidden="true">?</span>
+      <p id="question-text"></p>
+      <button id="answer-toggle" type="button" aria-expanded="false">Check your thinking</button>
+      <p class="answer" id="answer-text" hidden></p>
+    </section>
+
+    <section class="visual card" aria-labelledby="timeline-title">
+      <div class="visual-head"><h2 id="timeline-title">One active window, two timing patterns</h2><button class="draw" id="draw" type="button">Draw two new customers</button></div>
+      <div class="legend"><span><i class="key"></i> Subscription</span><span><i class="key txn"></i> Transactional</span><span data-min-step="2"><i class="key outline"></i> Undiscounted outline</span></div>
+      <div class="chart-scroll"><svg id="timeline" viewBox="0 0 1000 330" role="img" aria-labelledby="timeline-svg-title timeline-svg-desc"></svg></div>
+      <div class="today-control" id="today-control" hidden>
+        <label for="today">Move "Today"</label>
+        <input id="today" type="range" min="0" max="12" step="0.1" value="3">
+        <output id="today-output">Month 3.0</output>
+      </div>
+    </section>
+
+    <div class="split-grid" aria-live="polite">
+      <section class="split-card card" id="sub-split" hidden><h3>Subscription customer</h3><div class="split-values"></div></section>
+      <section class="split-card txn card" id="txn-split" hidden><h3>Transactional customer</h3><div class="split-values"></div></section>
+      <p class="split-note" id="split-note"></p>
+    </div>
+
+    <div class="lower">
+      <section class="cumulative card" id="cumulative-card" hidden aria-labelledby="cumulative-title">
+        <h2 id="cumulative-title">Cumulative discounted contribution after CAC</h2>
+        <p>Payback happens where a line first crosses $0.</p>
+        <div class="chart-scroll"><svg id="cumulative" viewBox="0 0 720 300" role="img" aria-label="Cumulative discounted customer value after acquisition cost"></svg></div>
+      </section>
+      <section class="table-wrap card" aria-labelledby="event-table-title">
+        <h2 id="event-table-title">The chart is this table</h2>
+        <p id="table-note">Every mark above is one row below.</p>
+        <div class="table-scroll"><table><thead id="event-head"></thead><tbody id="event-body"></tbody></table></div>
+      </section>
+    </div>
+
+    <details class="method">
+      <summary>Model, timing, and source notes</summary>
+      <div class="method-grid">
+        <p><strong>Workbook inputs.</strong> <code>Class 7 - BG and CLV.xlsx</code>, sheet <code>BG CLV</code>: AOF <code>E1</code>, AOV <code>E2</code>, margin <code>E3</code>, monthly contribution <code>E4 = E1 x E2 x E3</code>, and discount rate <code>E5</code>. The 18% monthly churn is an illustrative homogeneous rate, not the Blue Apron fit: the fitted beta-geometric model has a mean churn propensity of 35.4% and spreads it across customers. That is why expected PAV here is smaller than the beta-geometric figure in the companion tool. Heterogeneity, not a different data source, explains the gap.</p>
+        <p><strong>Teaching assumption.</strong> Subscription contribution arrives at the start of each active billing period. Transactional orders follow a Poisson process while the customer is active, so both lanes have the same expected raw contribution per month. Marks to the right of Today are simulated draws, not observed future cash.</p>
+      </div>
+    </details>
+    <footer>Self-contained teaching prototype · No data leaves this file · Built for MKT 626 at Michigan Ross</footer>
+  </main>
+
+  <script>
+  /*MATH-CORE-START*/
+  'use strict';
+  const TimelineMath = (() => {
+    const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, Number(v)));
+
+    function normalize(raw) {
+      return {
+        aov: clamp(raw.aov, 0.01, 100000),
+        aof: clamp(raw.aof, 0.01, 1000),
+        margin: clamp(raw.margin, 0, 1),
+        churn: clamp(raw.churn, 0.0001, 0.9999),
+        discount: clamp(raw.discount, 0, 10),
+        cac: clamp(raw.cac, 0, 1000000)
+      };
+    }
+
+    function metrics(raw) {
+      const x = normalize(raw);
+      const contributionPerOrder = x.aov * x.margin;
+      const monthlyContribution = x.aof * contributionPerOrder;
+      const expectedLifetime = 1 / x.churn;
+      const expectedPav = monthlyContribution * (1 + x.discount) / (x.discount + x.churn);
+      // Undiscounted contribution expected over an average active window. Both lanes are
+      // built to this same figure, so it is the yardstick a single draw gets compared to.
+      const expectedRaw = monthlyContribution * expectedLifetime;
+      return { ...x, contributionPerOrder, monthlyContribution, expectedLifetime,
+        expectedRaw, expectedPav, expectedClv: expectedPav - x.cac };
+    }
+
+    function discountedContribution(amount, time, discount) {
+      return amount / Math.pow(1 + discount, time);
+    }
+
+    function subscriptionRisk(raw) {
+      const m = metrics(raw);
+      if (m.cac <= 0) return 0;
+      let cumulative = 0;
+      for (let periods = 1; periods <= 10000; periods++) {
+        cumulative += discountedContribution(m.monthlyContribution, periods - 1, m.discount);
+        if (cumulative >= m.cac) return 1 - Math.pow(1 - m.churn, periods - 1);
+      }
+      return 1;
+    }
+
+    function poissonCdf(maxCount, mean) {
+      let term = Math.exp(-mean), total = term;
+      for (let k = 1; k <= maxCount; k++) { term *= mean / k; total += term; }
+      return total;
+    }
+
+    function transactionalRiskBeforeDiscount(raw) {
+      const m = metrics(raw);
+      if (m.cac <= 0) return 0;
+      if (m.contributionPerOrder <= 0) return 1;
+      const maxOrdersBelowCac = Math.ceil(m.cac / m.contributionPerOrder) - 1;
+      let risk = 0;
+      for (let lifetime = 1; lifetime <= 10000; lifetime++) {
+        const pLifetime = m.churn * Math.pow(1 - m.churn, lifetime - 1);
+        risk += pLifetime * poissonCdf(maxOrdersBelowCac, m.aof * lifetime);
+        if (pLifetime < 1e-14) break;
+      }
+      return risk;
+    }
+
+    function mulberry32(seed) {
+      let a = seed >>> 0;
+      return () => {
+        a |= 0; a = a + 0x6D2B79F5 | 0;
+        let t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
+
+    function geometricLifetime(churn, rng) {
+      return Math.floor(Math.log(1 - rng()) / Math.log(1 - churn)) + 1;
+    }
+
+    function makeScenario(raw, seed = 626) {
+      const m = metrics(raw);
+      const rng = mulberry32(seed);
+      const lifetime = geometricLifetime(m.churn, rng);
+      const subscription = [];
+      for (let t = 0; t < lifetime; t++) subscription.push({ time: t, raw: m.monthlyContribution });
+      const transactional = [];
+      let time = -Math.log(1 - rng()) / m.aof;
+      while (time < lifetime && transactional.length < 5000) {
+        transactional.push({ time, raw: m.contributionPerOrder });
+        time += -Math.log(1 - rng()) / m.aof;
+      }
+      for (const events of [subscription, transactional]) {
+        let cumulative = -m.cac;
+        for (const event of events) {
+          event.discountFactor = Math.pow(1 + m.discount, -event.time);
+          event.discounted = event.raw * event.discountFactor;
+          cumulative += event.discounted;
+          event.cumulativeAfterCac = cumulative;
+        }
+      }
+      return { lifetime, subscription, transactional, inputs: m, seed };
+    }
+
+    return { normalize, metrics, discountedContribution, subscriptionRisk,
+      transactionalRiskBeforeDiscount, poissonCdf, mulberry32, geometricLifetime, makeScenario };
+  })();
+  /*MATH-CORE-END*/
+
+  (() => {
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => [...document.querySelectorAll(selector)];
+    const money = (v, digits = 2) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: digits, maximumFractionDigits: digits }).format(v);
+    const pct = (v, digits = 1) => `${(v * 100).toFixed(digits)}%`;
+    const fmt = { aov: v => money(v, 2), aof: v => v.toFixed(1), margin: v => pct(v, 0), churn: v => pct(v, 0), discount: v => pct(v, 2), cac: v => money(v, 0) };
+    const SUB_COLOR = '#00274C', TXN_COLOR = '#FFCB05', TXN_EDGE = '#8A6D00', TXN_LINE = '#D9A900';
+    const initialStep = Math.min(4, Math.max(1, Number(location.hash.match(/step-(\d+)/)?.[1] || 1)));
+    // Seed 3114 opens on a representative draw: a 6-month active window against an
+    // expected 5.6, 11 orders, a 3-month quiet stretch for step 4, and the two lanes
+    // landing within 2% of each other so "same expected contribution" is visible on load.
+    // The previous default drew a 2-month window, which used a sixth of the canvas and
+    // made the two lanes look nothing alike.
+    const state = { step: initialStep, seed: 3114, today: 3, todayTouched: false, scenario: null };
+    const questions = {
+      1: m => ({ q: 'Before you look at the chart: what is the expected contribution per month, and how long does a customer stick around on average?', a: `${money(m.monthlyContribution)} per month, which is ${m.aof.toFixed(1)} orders x ${money(m.aov)} x ${pct(m.margin, 0)} margin. Expected lifetime is 1 divided by ${pct(m.churn, 0)} churn, so ${m.expectedLifetime.toFixed(1)} active billing periods.` }),
+      2: m => ({ q: 'Both lanes have the same expected raw contribution. Which one should lose more to discounting?', a: 'Usually the transactional lane. Its purchases can land late in the active window, while the subscriber gets paid at the start of every period. The exact answer changes from draw to draw, which is the point: equal expected contribution does not mean equal timing.' }),
+      3: m => ({ q: `With CAC at ${money(m.cac, 0)}, which customer is more likely to never pay it back?`, a: `The transactional one. Before discounting, about ${pct(TimelineMath.subscriptionRisk(m))} of subscribers never cover CAC versus about ${pct(TimelineMath.transactionalRiskBeforeDiscount(m))} of transactional customers. Irregular timing creates more downside even when the averages match.` }),
+      // Reads the quiet stretch off the drawn customer rather than inventing one. In the
+      // Aug 18 review he looked for the connection to the chart and it was not there.
+      4: m => {
+        const gap = longestQuietStretch();
+        const where = gap.months >= 0.75
+          ? `This transactional customer went quiet for ${gap.months.toFixed(1)} months, between month ${gap.from.toFixed(1)} and month ${gap.to.toFixed(1)}.`
+          : 'Suppose this transactional customer went quiet for a few months.';
+        return {
+          q: `${where} Would you know they had churned?`,
+          a: 'No. A subscriber cancels and you see it. A transactional customer just goes quiet, and a quiet stretch looks the same as leaving for good. Drag Today into the middle of that gap: everything to its right is a simulated possibility, not observed data. This is the contractual versus noncontractual distinction, and it is why the course needs the BG model later.'
+        };
+      }
+    };
+
+    function inputs() {
+      return Object.fromEntries($$('[data-key]').map(el => [el.dataset.key, Number(el.value)]));
+    }
+
+    /* Longest run with no transactional order, measured on the customer currently drawn.
+       Counts the stretch after the last order up to the end of the active window too,
+       since that silence is exactly the ambiguous case. */
+    function longestQuietStretch() {
+      const s = state.scenario;
+      if (!s) return { months: 0, from: 0, to: 0 };
+      const times = s.transactional.map(e => e.time).sort((a, b) => a - b);
+      let best = { months: 0, from: 0, to: 0 };
+      for (let i = 1; i < times.length; i++) {
+        const span = times[i] - times[i - 1];
+        if (span > best.months) best = { months: span, from: times[i - 1], to: times[i] };
+      }
+      if (times.length) {
+        const trailing = s.lifetime - times[times.length - 1];
+        if (trailing > best.months) {
+          best = { months: trailing, from: times[times.length - 1], to: s.lifetime };
+        }
+      }
+      return best;
+    }
+
+    function setStep(step) {
+      state.step = Number(step);
+      $$('.step').forEach(btn => {
+        const selected = Number(btn.dataset.step) === state.step;
+        btn.setAttribute('aria-selected', String(selected));
+        btn.tabIndex = selected ? 0 : -1;
+      });
+      render();
+    }
+
+    function renderMetrics(m) {
+      $('#metric-m').textContent = money(m.monthlyContribution);
+      $('#metric-life').textContent = `${m.expectedLifetime.toFixed(1)} months`;
+      $('#metric-pav').textContent = state.step >= 2 ? money(m.expectedPav) : 'Unlocks in step 2';
+      $('#metric-clv').textContent = state.step >= 3 ? money(m.expectedClv) : 'Unlocks in step 3';
+      $('#metric-risk').textContent = state.step >= 3 ? `${pct(TimelineMath.subscriptionRisk(m))} / ${pct(TimelineMath.transactionalRiskBeforeDiscount(m))}` : 'Unlocks in step 3';
+      $$('[data-unlock]').forEach(el => el.classList.toggle('is-locked', state.step < Number(el.dataset.unlock)));
+    }
+
+    function renderQuestion(m) {
+      const content = questions[state.step](m);
+      $('#question-text').textContent = content.q;
+      $('#answer-text').textContent = content.a;
+      $('#answer-text').hidden = true;
+      $('#answer-toggle').setAttribute('aria-expanded', 'false');
+      $('#answer-toggle').textContent = 'Check your thinking';
+    }
+
+    function timelineSvg(s) {
+      const W = 1000, left = 165, right = 36;
+      // The axis stays fixed while you redraw, so a short draw visibly looks short and a
+       // long one looks long. It is sized to about twice the expected lifetime, which
+       // covers roughly 85% of draws; it was previously hardcoded to 12 months, which
+       // left most of the canvas empty whenever churn was high and lifetimes were short.
+      const maxT = Math.max(4, Math.ceil(Math.max(s.lifetime + 1, 1.4 * s.inputs.expectedLifetime)));
+      const x = t => left + t / maxT * (W - left - right);
+      const bases = { subscription: 125, transactional: 265 };
+      const maxRaw = Math.max(s.inputs.monthlyContribution, s.inputs.contributionPerOrder, 1);
+      const h = amount => 58 * amount / maxRaw;
+      const fragments = [`<title id="timeline-svg-title">Subscription and transactional cash-flow timing</title><desc id="timeline-svg-desc">Both customers stay active for ${s.lifetime} billing periods. Subscription contribution is regular; transactional orders are irregular.</desc>`];
+      if (state.step >= 4) {
+        // The "still to come" band stops where the relationship stops. Running it to the
+        // edge of the chart implied months of pending value for a customer who had
+        // already churned, which is the opposite of what step 4 is teaching.
+        const windowEnd = x(Math.min(s.lifetime, maxT));
+        const futureStart = Math.min(x(state.today), windowEnd);
+        fragments.push(`<rect x="${left}" y="35" width="${Math.max(0, x(state.today)-left)}" height="250" fill="#E7EDF4" opacity=".75"/><rect x="${futureStart}" y="35" width="${Math.max(0, windowEnd-futureStart)}" height="250" fill="#FFF6D6" opacity=".65"/>`);
+      }
+      for (let t = 0; t <= maxT; t++) {
+        fragments.push(`<line class="grid" x1="${x(t)}" y1="52" x2="${x(t)}" y2="286"/><text class="tick" x="${x(t)}" y="309" text-anchor="middle">${t}</text>`);
+      }
+      fragments.push(`<text class="tick" x="${(left+W-right)/2}" y="326" text-anchor="middle">Months since acquisition</text>`);
+      const lanes = [
+        ['subscription', 'Subscription', 'Regular monthly billing', SUB_COLOR, ''],
+        ['transactional', 'Transactional', 'Irregular order arrivals', TXN_COLOR, ` stroke="${TXN_EDGE}" stroke-width="1"`]
+      ];
+      for (const [key, label, note, color, edge] of lanes) {
+        const base = bases[key];
+        fragments.push(`<text class="lane-label" x="18" y="${base-12}">${label}</text><text class="lane-note" x="18" y="${base+7}">${note}</text><line class="axis" x1="${left}" y1="${base}" x2="${W-right}" y2="${base}"/>`);
+        for (const event of s[key]) {
+          const rawH = h(event.raw), shownH = state.step >= 2 ? h(event.discounted) : rawH;
+          if (state.step >= 2) fragments.push(`<rect x="${x(event.time)-5}" y="${base-rawH}" width="10" height="${rawH}" rx="3" fill="none" stroke="#AEB9C2" stroke-width="2"/>`);
+          fragments.push(`<rect x="${x(event.time)-4}" y="${base-shownH}" width="8" height="${shownH}" rx="2.5" fill="${color}"${edge}><title>${label}, month ${event.time.toFixed(2)}: ${money(state.step >= 2 ? event.discounted : event.raw)}</title></rect>`);
+        }
+        const markColor = key === 'transactional' ? TXN_LINE : color;
+        // Both lanes share one active window, so the caption is drawn once, on the
+        // lower lane. That also keeps it clear of the TODAY label at the top.
+        const endCaption = key === 'transactional'
+          ? `<text class="lane-note" x="${x(s.lifetime)-5}" y="${base-79}" text-anchor="end">active window ends</text>`
+          : '';
+        fragments.push(`<line x1="${x(s.lifetime)}" y1="${base-72}" x2="${x(s.lifetime)}" y2="${base+10}" stroke="${markColor}" stroke-dasharray="3 4"/>${endCaption}`);
+      }
+      if (state.step >= 4) fragments.push(`<line class="today-line" x1="${x(state.today)}" y1="34" x2="${x(state.today)}" y2="286"/><text x="${x(state.today)+7}" y="48" fill="#9A3324" font-size="12" font-weight="800">TODAY</text>`);
+      return { html: fragments.join(''), maxT };
+    }
+
+    function cumulativeSvg(s, maxT) {
+      const W = 720, H = 300, left = 62, right = 24, top = 25, bottom = 42;
+      const x = t => left + t / maxT * (W-left-right);
+      const allFinal = [s.subscription, s.transactional].map(events => -s.inputs.cac + events.reduce((sum,e)=>sum+e.discounted,0));
+      const maxY = Math.max(20, ...allFinal, s.inputs.cac * .25) * 1.15;
+      const minY = -Math.max(s.inputs.cac, 10) * 1.15;
+      const y = v => top + (maxY-v)/(maxY-minY)*(H-top-bottom);
+      const parts = [`<title>Cumulative discounted contribution after acquisition cost</title>`];
+      for (let t=0;t<=maxT;t+=Math.max(1,Math.ceil(maxT/12))) parts.push(`<line class="grid" x1="${x(t)}" y1="${top}" x2="${x(t)}" y2="${H-bottom}"/><text class="tick" x="${x(t)}" y="${H-17}" text-anchor="middle">${t}</text>`);
+      parts.push(`<line class="axis" x1="${left}" y1="${y(0)}" x2="${W-right}" y2="${y(0)}"/><text class="tick" x="${left-8}" y="${y(0)+4}" text-anchor="end">$0</text>`);
+      const pathFor = (events, color, label) => {
+        let cumulative = -s.inputs.cac, d = `M ${x(0)} ${y(cumulative)}`, payback = null;
+        for (const event of events) {
+          d += ` H ${x(event.time)} V ${y(cumulative + event.discounted)}`;
+          cumulative += event.discounted;
+          if (payback === null && cumulative >= 0) payback = {time:event.time,value:cumulative};
+        }
+        d += ` H ${x(maxT)}`;
+        parts.push(`<path d="${d}" fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round"><title>${label}</title></path>`);
+        if (payback) parts.push(`<circle cx="${x(payback.time)}" cy="${y(payback.value)}" r="5" fill="${color}" stroke="#fff" stroke-width="2"><title>${label} payback near month ${payback.time.toFixed(1)}</title></circle>`);
+      };
+      pathFor(s.subscription, SUB_COLOR, 'Subscription');
+      pathFor(s.transactional, TXN_LINE, 'Transactional');
+      if (state.step >= 4) parts.push(`<line class="today-line" x1="${x(state.today)}" y1="${top}" x2="${x(state.today)}" y2="${H-bottom}"/>`);
+      parts.push(`<text class="tick" x="${(left+W-right)/2}" y="${H-3}" text-anchor="middle">Months since acquisition</text><text class="tick" transform="translate(14 ${(top+H-bottom)/2}) rotate(-90)" text-anchor="middle">CLV realized in this draw</text>`);
+      return parts.join('');
+    }
+
+    function renderTable(s) {
+      const events = [
+        ...s.subscription.map(e => ({...e, lane:'Subscription', laneClass:''})),
+        ...s.transactional.map(e => ({...e, lane:'Transactional', laneClass:'txn'}))
+      ].sort((a,b) => a.time-b.time || a.lane.localeCompare(b.lane));
+      const headers = ['Lane','Month','Raw contribution'];
+      if (state.step >= 2) headers.push('Discount factor','Discounted');
+      if (state.step >= 3) headers.push('Cumulative after CAC');
+      if (state.step >= 4) headers.push('Side of Today');
+      $('#event-head').innerHTML = `<tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr>`;
+      $('#event-body').innerHTML = events.map(e => {
+        const cells = [`<td><span class="lane-dot ${e.laneClass}"></span>${e.lane}</td>`,`<td>${e.time.toFixed(2)}</td>`,`<td>${money(e.raw)}</td>`];
+        if (state.step >= 2) cells.push(`<td>${e.discountFactor.toFixed(3)}</td>`,`<td>${money(e.discounted)}</td>`);
+        if (state.step >= 3) cells.push(`<td>${money(e.cumulativeAfterCac)}</td>`);
+        if (state.step >= 4) cells.push(`<td>${e.time <= state.today ? 'Value to date' : 'Future draw'}</td>`);
+        return `<tr>${cells.join('')}</tr>`;
+      }).join('') || '<tr><td colspan="7">This transactional draw contains no orders.</td></tr>';
+      $('#table-note').textContent = state.step === 1 ? 'Every mark above is one undiscounted cash-flow row.' : state.step === 2 ? 'The discount factor shrinks later cash flows.' : state.step === 3 ? 'CAC enters once at acquisition; the cumulative column shows payback.' : 'Today splits discounted contribution into value to date and a simulated future portion.';
+    }
+
+    /* Steps 1-3 report what THIS draw produced against the figure both lanes are built
+       to. Without that comparison "same expected contribution" is an assertion a student
+       cannot check, and on any single draw the two lanes routinely differ by tens of
+       percent. Step 4 switches to the past/future split. */
+    function splitValues(events, m) {
+      if (state.step >= 4) {
+        const vtd = events.filter(e => e.time <= state.today).reduce((a, e) => a + e.discounted, 0);
+        const future = events.filter(e => e.time > state.today).reduce((a, e) => a + e.discounted, 0);
+        return `<div><b>${money(vtd)}</b><span>Value to date</span></div><div><b>${money(future)}</b><span>Still to come in this draw</span></div><div><b>${money(vtd - m.cac)}</b><span>Value to date less CAC</span></div>`;
+      }
+      const raw = events.reduce((a, e) => a + e.raw, 0);
+      const discounted = events.reduce((a, e) => a + e.discounted, 0);
+      const delta = raw - m.expectedRaw;
+      const cells = [
+        `<div><b>${money(raw)}</b><span>Raw contribution, this draw</span></div>`,
+        `<div><b>${delta >= 0 ? '+' : '−'}${money(Math.abs(delta), 0)}</b><span>vs ${money(m.expectedRaw, 0)} expected</span></div>`
+      ];
+      if (state.step >= 2) cells.push(`<div><b>${money(discounted)}</b><span>After discounting</span></div>`);
+      if (state.step >= 3) cells.push(`<div><b>${money(discounted - m.cac)}</b><span>After CAC</span></div>`);
+      return cells.join('');
+    }
+
+    function render() {
+      const m = TimelineMath.metrics(inputs());
+      $$('[data-output]').forEach(out => { const key=out.dataset.output; out.textContent=fmt[key](m[key]); });
+      state.scenario = TimelineMath.makeScenario(m, state.seed);
+      const s = state.scenario;
+      const chart = timelineSvg(s);
+      $('#timeline').innerHTML = chart.html;
+      renderMetrics(m);
+      renderQuestion(m);
+      renderTable(s);
+      $$('[data-min-step]').forEach(el => el.hidden = state.step < Number(el.dataset.minStep));
+      $('#cumulative-card').hidden = state.step < 3;
+      if (state.step >= 3) $('#cumulative').innerHTML = cumulativeSvg(s, chart.maxT);
+      const showToday = state.step >= 4;
+      $('#today-control').hidden = !showToday;
+      // The per-lane panel is visible from step 1 now, so the shared expectation can be
+      // checked against the draw from the moment the claim is made.
+      $('#sub-split').hidden = false;
+      $('#txn-split').hidden = false;
+      $('#today').max = chart.maxT;
+      if (!state.todayTouched) state.today = Math.max(0.5, Math.round(s.lifetime * 0.6 * 10) / 10);
+      state.today = Math.min(state.today, chart.maxT);
+      $('#today').value = state.today;
+      $('#today-output').textContent = `Month ${state.today.toFixed(1)}`;
+      $('#sub-split .split-values').innerHTML = splitValues(s.subscription, m);
+      $('#txn-split .split-values').innerHTML = splitValues(s.transactional, m);
+      const subRaw = s.subscription.reduce((a, e) => a + e.raw, 0);
+      const txnRaw = s.transactional.reduce((a, e) => a + e.raw, 0);
+      const spread = subRaw > 0 ? Math.abs(100 * (txnRaw - subRaw) / subRaw) : 0;
+      $('#split-note').innerHTML = showToday
+        ? `Today splits each lane into value already banked and value still ahead in this draw. Only the left side is money you have.`
+        : `Both lanes are built to the same expected raw contribution of <b>${money(m.expectedRaw, 0)}</b>. This draw came out <b>${spread.toFixed(0)}%</b> apart. Press <b>Draw two new customers</b> a few times: individual draws swing widely in both directions, and it is only the average across many of them that matches.`;
+    }
+
+    $$('.step').forEach(btn => btn.addEventListener('click', () => setStep(btn.dataset.step)));
+    $$('[data-key]').forEach(input => input.addEventListener('input', render));
+    $('#draw').addEventListener('click', () => { state.seed = (state.seed + 104729) >>> 0; render(); });
+    $('#today').addEventListener('input', e => { state.todayTouched = true; state.today = Number(e.target.value); render(); });
+    $('#answer-toggle').addEventListener('click', () => {
+      const answer = $('#answer-text'), willOpen = answer.hidden;
+      answer.hidden = !willOpen;
+      $('#answer-toggle').setAttribute('aria-expanded', String(willOpen));
+      $('#answer-toggle').textContent = willOpen ? 'Hide explanation' : 'Check your thinking';
+    });
+    document.addEventListener('keydown', event => {
+      if (!event.target.classList.contains('step') || !['ArrowLeft','ArrowRight'].includes(event.key)) return;
+      event.preventDefault();
+      const next = Math.min(4, Math.max(1, state.step + (event.key === 'ArrowRight' ? 1 : -1)));
+      setStep(next);
+      $(`.step[data-step="${next}"]`).focus();
+    });
+    setStep(state.step);
+  })();
+  </script>
+</body>
+</html>
